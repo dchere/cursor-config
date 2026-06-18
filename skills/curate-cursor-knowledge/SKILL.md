@@ -1,54 +1,100 @@
 ---
 name: curate-cursor-knowledge
 description: >-
-  Integrates concentrated user input into cursor-config skills or agents in
-  ~/projects/cursor-config. Use when the user provides standards, preferences,
-  or lessons to persist, or asks to update, extend, or create skills/agents.
+  Integrates user input into cursor-config skills or agents with routing, dedup,
+  and portability checks. Use when persisting standards, lessons, or docs into
+  ~/projects/cursor-config skills/agents.
 disable-model-invocation: true
 ---
 
 # Curate Cursor Knowledge
 
-Use this skill when the user gives **concentrated input** to preserve across projects.
+Use when the user provides **concentrated input** to preserve across projects.
 
-## Repo location
+**Repo:** `~/projects/cursor-config/` (symlinked from `~/.cursor/skills` and `~/.cursor/agents`).
 
-All edits go to **`~/projects/cursor-config/`** (symlinked from `~/.cursor/skills` and `~/.cursor/agents`).
-
-Never edit `~/.cursor/skills-cursor/`.
+**Never edit** `~/.cursor/skills-cursor/`.
 
 ## Workflow
 
-1. **Clarify target** (if ambiguous):
-   - Extend existing skill (`python`, `code-review`, …)
-   - Update agent prompt (`developer`, `reviewer`, `architect`)
-   - Create new skill directory
+### 0. Parse input
 
-2. **Read** current file(s) in `cursor-config`.
+- Identify sections and implied roles (Architect, Developer, Reviewer).
+- List candidate target files before editing.
 
-3. **Merge** the input:
-   - Add bullets or sections; dedupe overlapping rules
-   - Keep portable knowledge in global skills; project-specific detail belongs in project `.cursor/rules/` or project docs
-   - Keep each `SKILL.md` under **500 lines**; move depth to `reference.md`
+### 1. Route content (required)
 
-4. **Update frontmatter** `description` with new trigger terms if scope expanded.
+| Content type | Primary home | Secondary |
+|--------------|--------------|-----------|
+| SOLID, boundaries, concurrency *choice* | `system-architecture` | `python/reference.md` |
+| Python perf, typing, SQLite, tooling | `python` / `reference.md` | — |
+| Review checks, severity format | `code-review` | link to `python` |
+| How to implement, AI collaboration | `developer-workflow` | — |
+| Agent behavior, skill invocation | `agents/dev`, `cr`, `brain` | — |
 
-5. **Summarize** what changed and show relevant diffs.
+Create a new skill only when content is a new domain (e.g. `java/`), not a duplicate topic.
 
-6. **Remind user** to review and commit in `cursor-config`:
-   ```bash
-   cd ~/projects/cursor-config && git diff && git add -A && git commit -m "..."
-   ```
+### 2. Read current files
+
+Read all target files in `cursor-config` before merging.
+
+### 3. Merge
+
+- Compress report prose to **actionable bullets** — do not paste verbatim.
+- **One canonical home** per concept; elsewhere use a one-line cross-link only.
+- Keep each `SKILL.md` under **500 lines**; depth goes in `reference.md`.
+- Update YAML `description` with role triggers, not tool laundry lists.
+
+### 3b. Qualifiers (required)
+
+Add **when** guards for:
+
+- Performance (`__slots__`, algorithmic changes)
+- Rust / PyO3
+- Python 3.14 concurrency features
+- New tooling (uv, Loguru) — always: *"if project already uses X, follow X"*
+
+### 3c. Portability (required)
+
+- No project-specific names (`spejder`, repo paths) in global skills.
+- OS-specific notes (e.g. macOS `python3`) go in `reference.md`, not main `SKILL.md`.
+- Project-only rules → project `.cursor/rules/` or project docs, not `cursor-config`.
+
+### 3d. Dedup pass (required)
+
+Before finishing, scan for repeated concepts (Pydantic, uv, agentic AI, O(1) lookups) across files. Keep one canonical section; remove duplicates.
+
+### 4. Sync agents
+
+If skill boundaries or skill names change, update **dev**, **cr**, **brain** "When invoked" skill lists if affected.
+
+### 5. Curation report (required output)
+
+```markdown
+## Curation report
+- **Files changed:** ...
+- **Canonical homes:** concept → file
+- **Omitted** (and why): ...
+- **Duplicates removed:** ...
+- **Agents updated:** yes/no
+- **Line counts:** SKILL.md before → after (if significant)
+```
+
+### 6. Commit reminder
+
+```bash
+cd ~/projects/cursor-config && git diff && git add -A && git commit -m "..."
+```
 
 ## Merge rules
 
-- Prefer **actionable** bullets over prose.
-- Do not duplicate Cursor **User Rules** verbatim; reference principles once.
-- When input conflicts with existing skill text, ask which wins or propose a merged wording.
-- For new languages, copy the `python/` layout: `SKILL.md` + optional `reference.md`.
+- Do not duplicate Cursor **User Rules** verbatim.
+- On conflict with existing skill text, surface it in the report — do not silently overwrite.
+- Do not add review checklist items that cannot be verified from a typical diff alone.
+- For new languages, copy `python/` layout: `SKILL.md` + optional `reference.md`.
 
 ## Example invocations
 
 - "Use curate-cursor-knowledge: add rule X to python skill"
-- "Integrate this review checklist into code-review"
+- "Integrate this checklist into code-review"
 - "Create a java skill from this document"

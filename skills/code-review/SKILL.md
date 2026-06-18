@@ -1,8 +1,8 @@
 ---
 name: code-review
 description: >-
-  Language-agnostic code review checklist and feedback format. Use when reviewing
-  pull requests, diffs, changes, or when the reviewer agent is active.
+  Code review checklist and severity-based feedback format. Use when reviewing
+  pull requests, diffs, or when the cr agent is active.
 ---
 
 # Code Review
@@ -17,14 +17,27 @@ description: >-
 
 - **Correctness**: logic, edge cases, error paths
 - **Security**: injection, secrets, auth, unsafe defaults
-- **Maintainability**: naming, duplication, function size, coupling
-- **Performance**: obvious hot-path or N+1 issues
+- **Maintainability**: naming, duplication, function size, coupling, SRP violations
+- **Performance**: obvious hot-path complexity, N+1 queries — only flag patterns verifiable from the diff (e.g. nested loops + DB calls, `x in list` inside loops on growing collections)
 - **Tests**: meaningful coverage for changed behavior
 - **Scope**: no unrelated drive-by refactors
+- **Docs**: when the project uses module memory (`.cursor/rules/`, `AGENTS.md`, companion `.md`), verify mapped files match the diff — flag stale or missing updates as **Suggestion**
+
+## Language-specific review
+
+For **Python** (`.py`): apply the `python` skill for validation, SQLite, performance gates, and tooling — do not duplicate that checklist here.
+
+Flag from the diff when visible:
+
+- Deep inheritance where composition would simplify
+- Unvalidated external input reaching business logic
+- List membership checks inside loops on growing collections
+
+Do **not** require `__slots__`, PyO3, Cython, or 3.14 concurrency changes unless the PR claims perf work or profiling evidence exists.
+
+When a PR claims performance improvements, expect profiler output (`cProfile`, Pyinstrument, or benchmarks) — not hand-wavy Big-O claims alone. Optional scaling tests on critical paths are a **Suggestion**, not a merge blocker.
 
 ## Severity labels
-
-Use these consistently:
 
 - **Critical**: must fix before merge (bugs, security, broken behavior)
 - **Suggestion**: should improve (clarity, design, missing tests)
@@ -38,7 +51,7 @@ For each issue:
 2. What is wrong or risky
 3. Concrete fix suggestion
 
-End with a short summary: overall assessment and merge recommendation if appropriate.
+End with a brief summary: overall assessment and merge recommendation if appropriate.
 
 ## Boundaries
 

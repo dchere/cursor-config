@@ -5,7 +5,7 @@ Personal Cursor agents and skills, symlinked into `~/.cursor/` for use across al
 ## Layout
 
 ```
-agents/          # Role subagents (developer, reviewer, architect)
+agents/          # Role subagents (pipeline, brain, dev, cr, dima)
 skills/          # Knowledge packs (workflows, Python, curation)
 install.sh       # Symlink skills/ and agents/ into ~/.cursor/
 ```
@@ -19,14 +19,22 @@ cd ~/projects/cursor-config
 
 Restart Cursor or open a new agent chat after installing.
 
+**Agent IDs** (YAML `name` field) are lowercase: `pipeline`, `dev`, `cr`, `brain`, `dima`. You can invoke `CR` or `Dima` in chat; Cursor matches by name and description.
+
 ## Usage
 
-| Invoke | When |
-|--------|------|
-| `Use the developer agent to …` | Implement features, fix bugs |
-| `Use the reviewer agent on …` | Review diffs or PRs |
-| `Use the architect agent for …` | Design, boundaries, tradeoffs |
-| `Use curate-cursor-knowledge: …` | Integrate new standards into skills/agents |
+| Invoke | Reads |
+|--------|--------|
+| `Use the pipeline agent to …` | orchestrates brain → dev → cr subagents |
+| `Use the dev agent to …` | `developer-workflow`, `python` |
+| `Use the CR agent on …` | `code-review`, `python` (for `.py`) |
+| `Use the brain agent for …` | `system-architecture`, `python/reference.md` |
+| `Use Dima to …` / `Use the Dima agent …` | `idea-sparring` (discussion only — no plan or code) |
+| `Use curate-cursor-knowledge: …` | routes, dedups, curation report |
+
+**Pipeline** runs brain (plan + Documentation section), dev (implement + module memory), then cr (review diff) in one session. The pipeline presents the **full** CR report (not a short verdict) plus an explicit **commit readiness** call. Opt out with `plan only`, `skip plan`, or `review only`.
+
+Brain plans and dev implementations should include **Documentation** updates when the project uses module memory (project `.cursor/rules/` or companion `.md` files). CR verifies doc sync.
 
 ## Updating knowledge
 

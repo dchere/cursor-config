@@ -1,8 +1,9 @@
 ---
 name: system-architecture
 description: >-
-  Language-agnostic system design and architecture guidance. Use when designing
-  modules, services, data flow, boundaries, or when the architect agent is active.
+  System design guidance: SOLID, Polylith monorepos, boundaries, concurrency
+  tradeoffs, and cross-language integration. Use when designing modules,
+  services, monorepos, or when the brain agent is active.
 ---
 
 # System Architecture
@@ -23,28 +24,67 @@ description: >-
 
 ## Output structure
 
-Use this outline unless the user asks otherwise:
-
 1. **Context** — problem, constraints, assumptions
 2. **Options** — brief comparison
 3. **Recommendation** — chosen approach and why
 4. **Boundaries** — modules/services, interfaces, data ownership
-5. **Risks** — what to watch; migration path if refactoring
+5. **Risks** — migration path if refactoring
+6. **Documentation** — exact companion `.md` files to update when behavior or boundaries change (from project rules if present)
 
 ## Diagrams
 
-For non-trivial flows, use mermaid (flowchart or sequence). Keep diagrams small and readable.
+For non-trivial flows, use mermaid. Keep diagrams small.
 
 ## Patterns to favor
 
-- Single responsibility per module
+- **SRP**: one reason to change per module (e.g. separate file I/O from compression logic)
+- **Composition over inheritance**: prefer "has-a" over "is-a"; swap component policies at runtime instead of deep subclass trees
+- **OCP via ABCs/protocols**: fixed interfaces; extend with new types, not edits to stable core
 - Repository/data layer isolated from business rules
-- Thin entry points (CLI, API) delegating to workflows
-- Configuration via typed models, not ad-hoc dicts
-- Explicit extension points over speculative abstraction
+- Thin entry points delegating to workflows
+- Typed configuration, not ad-hoc dicts
+- **OCP / LSP**: extend via protocols/ABCs; subtypes honor contracts
+
+## SOLID (quick reference)
+
+| Principle | Practical check |
+|-----------|-----------------|
+| **SRP** | One reason to change per module/class |
+| **OCP** | Extend via new types, not edits to stable core |
+| **LSP** | Subtypes interchangeable without surprises |
+| **ISP** | Small, focused interfaces |
+| **DIP** | Abstractions at boundaries (DB, LLM, APIs) |
+
+## Concurrency decision
+
+Record explicitly:
+
+1. **Workload** — I/O-bound vs CPU-bound vs mixed
+2. **Runtime** — Python version deployed (3.14+ features require verification)
+3. **Choice** — asyncio / threading / multiprocessing / subinterpreters
+4. **Rationale** — why not the alternatives
+
+Details for Python: `python/reference.md` concurrency section.
+
+## AI-assisted architecture
+
+- Structure quality affects AI output quality — design for clarity before scaling AI use.
+- For developer-side AI workflow (prompts, review passes): see **`developer-workflow`** agentic section.
+
+## Monorepo layout
+
+When managing a large Python monorepo, consider **Polylith**: reusable **bricks** (components) and **bases** (entry assemblies) with explicit dependency rules. Prefer this over ad-hoc package sprawl when many services share domain code.
+
+## Cross-language integration
+
+**Gate:** profile Python first; consider Rust/PyO3 or Cython only for proven CPU bottlenecks.
+
+- Thin language boundary; explicit error/ownership contracts
+- Rust mindset: ownership at boundaries; `Result`-like returns (`User | None`) for expected failures
+- See `python/reference.md` for PyO3, Cython, and profiling gates
 
 ## Boundaries
 
 - Do not implement code unless the user asks.
-- Do not over-specify; leave room for project conventions.
-- Apply language skills (e.g. `python`) for stack-specific packaging and tooling notes.
+- Leave room for project conventions.
+- Apply language skills (e.g. `python`) for stack-specific details.
