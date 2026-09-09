@@ -1,8 +1,9 @@
 ---
 name: system-architecture
 description: >-
-  System design guidance: SOLID, Polylith monorepos, boundaries, concurrency
-  tradeoffs, and cross-language integration. Use when designing modules,
+  System design guidance: SOLID, inheritance vs composition (reversibility/LSP),
+  Polylith monorepos, sagas and durable workflows, realtime/SSE, LLM fleet
+  boundaries, and cross-language integration. Use when designing modules,
   services, monorepos, or when the brain agent is active.
 ---
 
@@ -33,17 +34,21 @@ description: >-
 
 ## Diagrams
 
-For non-trivial flows, use mermaid. Keep diagrams small.
+- Use mermaid; keep diagrams small. Prefer several focused views over one “master” diagram that mixes every dependency.
+- Prefer **sequence diagrams** for back-and-forth between resources (services, queues, DBs).
+- Do not treat architecture diagrams generated from source as accurate — they hallucinate and over-abstract; review every edge.
+- **Fan traps**: identity is lost when many producers collapse onto one broker topic. Restore paths with **resource-specific topics** (or routing keys), not a single shared channel.
 
 ## Patterns to favor
 
 - **SRP**: one reason to change per module (e.g. separate file I/O from compression logic)
-- **Composition over inheritance**: prefer "has-a" over "is-a"; swap component policies at runtime instead of deep subclass trees
-- **OCP via ABCs/protocols**: fixed interfaces; extend with new types, not edits to stable core
+- **Composition over inheritance**: prefer "has-a" over "is-a"; swap **policies** at runtime instead of subclass trees (avoids **class explosion** when roles × policies multiply). Python: `@property` for derived/validated public attributes — see **`python`**.
+- **Reversibility test**: if both "A is a B" and "B is an A" can be argued, inheritance is invalid — compose instead.
+- **LSP**: if a subtype must ignore, no-op, or disable a base method, the hierarchy is wrong.
+- **OCP via ABCs/protocols**: ABCs for formal implementation contracts; Protocols when structural typing is enough. Python MRO / `super()`: **`python`**.
 - Repository/data layer isolated from business rules
 - Thin entry points delegating to workflows
 - Typed configuration, not ad-hoc dicts
-- **OCP / LSP**: extend via protocols/ABCs; subtypes honor contracts
 
 ## SOLID (quick reference)
 
@@ -51,7 +56,7 @@ For non-trivial flows, use mermaid. Keep diagrams small.
 |-----------|-----------------|
 | **SRP** | One reason to change per module/class |
 | **OCP** | Extend via new types, not edits to stable core |
-| **LSP** | Subtypes interchangeable without surprises |
+| **LSP** | Subtypes interchangeable without surprises; must not ignore or disable base methods |
 | **ISP** | Small, focused interfaces |
 | **DIP** | Abstractions at boundaries (DB, LLM, APIs) |
 
@@ -66,10 +71,33 @@ Record explicitly:
 
 Details for Python: `python/reference.md` concurrency section.
 
+## Distributed consistency (gated)
+
+Only when the design **already** spans multiple services or databases — do not introduce microservices in order to apply these.
+
+- **Saga**: prefer an **orchestrated** saga (central state machine / one workflow definition) over choreography unless the project already uses event choreography. Every forward step needs a **compensating transaction**.
+- **Compensations**: must be **idempotent** and run in **reverse dependency order** (children, then parents) so orphaned data is deleted without leaving dangling parents.
+- **Durable workflows**: for long-running processes, use a primitives-based orchestrator (**Temporal** or the project's existing equivalent) that records **event history** so workers can reconstruct state after crashes or partitions. Ordinary request/response paths do not need this.
+- **Reliability**: define recovery **bounds**, not “no failures” — retry policies with backoff and jitter (and a max attempts / DLQ). Do not invent a new orchestrator just to add retries.
+
+## Realtime / hypermedia (gated)
+
+Only when designing a web UI and the stack is not already a committed SPA.
+
+- Prefer **SSE** over WebSockets when push is server→client only (plain HTTP). Use WebSockets (or the project's existing channel) when the client must send a bidirectional stream.
+- Prefer **DOM morphing** (preserve focus and scroll) over full subtree swaps.
+- Hypermedia implementation (e.g. Datastar): **`developer-workflow`** — do not introduce unprompted; do not cite unverifiable payload-reduction claims.
+
+## Observability (gated)
+
+- Production `perf` / eBPF / flame graphs: CPython **frame pointers** — `python/reference.md`. Do not rebuild CPython unless observability is in scope.
+- Logging interpolation and root-logger rules: **`python`** Observability. Specify the standard here; do not restate the API.
+
 ## AI-assisted architecture
 
 - Structure quality affects AI output quality — design for clarity before scaling AI use.
-- For developer-side AI workflow (prompts, review passes): see **`developer-workflow`** agentic section.
+- For developer-side AI workflow (prompts, review passes, AX): see **`developer-workflow`**.
+- Model serving gateway, registry **provenance**, and edge weight manifests: **`python/reference.md`** LLM section — only when the product serves or ships models.
 
 ## Monorepo layout
 

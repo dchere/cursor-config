@@ -26,10 +26,11 @@ Use when the user provides **concentrated input** to preserve across projects.
 
 | Content type | Primary home | Secondary |
 |--------------|--------------|-----------|
-| SOLID, boundaries, concurrency *choice* | `system-architecture` | `python/reference.md` |
-| Python perf, typing, SQLite, tooling | `python` / `reference.md` | — |
+| SOLID, boundaries, concurrency *choice*, inheritance tests, sagas, durable workflows, retry bounds, diagrams, SSE/morphing | `system-architecture` | `python` (ABC/MRO) |
+| Python perf, typing, SQLite, tooling, serialization, logging, mocking, CPython internals, ABC/`super()`/`__mro__` | `python` / `reference.md` | — |
 | Review checks, severity format | `code-review` | link to `python` |
-| How to implement, AI collaboration | `developer-workflow` | — |
+| How to implement, AI collaboration, integration tests, forensic debug, AX | `developer-workflow` | — |
+| LLM serving gateway, registry provenance, edge manifests | `python/reference.md` | `developer-workflow` (pointer only) |
 | Agent behavior, skill invocation | `agents/dev`, `cr`, `brain` | — |
 
 Create a new skill only when content is a new domain (e.g. `java/`), not a duplicate topic.
@@ -51,8 +52,9 @@ Add **when** guards for:
 
 - Performance (`__slots__`, algorithmic changes)
 - Rust / PyO3
-- Python 3.14 concurrency features
-- New tooling (uv, Loguru) — always: *"if project already uses X, follow X"*
+- Python 3.14 concurrency features / free-threading internals
+- CPython rebuilds (frame pointers, JIT)
+- New tooling (uv, Loguru, Datastar, Marimo, Great Tables, Arcjet, MLflow, Temporal, msgspec) — always: *"if project already uses X, follow X; do not introduce unprompted"*
 
 ### 3c. Portability (required)
 

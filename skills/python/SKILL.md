@@ -1,9 +1,9 @@
 ---
 name: python
 description: >-
-  Python standards for layout, typing, testing, profiling, tooling, and data
-  boundaries. Use when writing or reviewing Python code, packages, pytest,
-  or pyproject.toml.
+  Python standards for layout, typing, testing, profiling, tooling, logging,
+  serialization, and data boundaries. Use when writing or reviewing Python
+  code, packages, pytest, or pyproject.toml.
 ---
 
 # Python
@@ -25,12 +25,26 @@ description: >-
 - Line length: follow `pyproject.toml` (often 100).
 - Prefer explicit imports; group stdlib, third-party, local.
 - Do not add `# pylint: disable=...` broadly; refactor instead.
+- Use **`@property`** for derived or validated public attributes so call sites stay attribute-like (lazy calc / validation without API churn).
 
 ## Typing and validation
 
 - Add type hints on public functions and non-trivial internals.
 - Use `Optional`, `list`, `dict` (or `from __future__ import annotations` per project).
 - Use **Pydantic** `BaseModel` for config and for **external input** (API, CSV, user files) at boundaries.
+- Keep `Annotated[...]` when that is the project style. Do **not** rewrite to proposed `@` metadata shorthand unless the project's Python/tooling already supports and uses it.
+
+## Methods
+
+- **Instance methods** — mutate or read instance state via `self`.
+- **`@classmethod`** — alternative constructors or registries (operate on the class).
+- **`@staticmethod`** — prefer a **module-level function** unless the utility must live in the class namespace for API/discovery reasons.
+
+## Contracts and inheritance
+
+- Use **ABCs** when subclasses must formally implement a contract; prefer **Protocols** when structural typing is enough.
+- Multiple inheritance / diamond problem: inspect `Class.__mro__` to see the search path; use **`super()`** so each ancestor initializes once.
+- Inheritance vs composition (reversibility test, LSP, policy composition): **`system-architecture`**.
 
 ## Error handling
 
@@ -42,13 +56,17 @@ description: >-
 
 - Use **pytest** when the project has tests.
 - Write tests for behavior that can regress; skip trivial "does import work" tests.
+- Prefer **integration tests** when a change crosses a service, DB, or API boundary — unit tests often pass while the seam fails. Workflow: **`developer-workflow`**.
 - Prefer pure functions and isolated DB/API boundaries for testability.
+- **Patch where the name is used, not where it is defined.** If the SUT does `from requests import get`, patch `that_module.get`, not `requests.get`.
 - **E2E browser tests**: use **Playwright** only when the project already does; its codegen can bootstrap scripts — do not introduce Playwright without being asked.
 
 ## Dependencies and tooling
 
 - Pin or constrain versions as the project does.
-- **New projects**: consider `uv` for env management. **Existing repos**: follow `pip`/`requirements.txt` — do not migrate without being asked.
+- **New projects**: use **`uv`** for env, lockfile, and production-style installs.
+- **Existing repos**: follow `pip`/`requirements.txt` — do not migrate without being asked.
+- **If the project already uses uv**: use `uv lock` / `uv sync` / `uv run` — do not mix pip in that repo.
 - Heavy ML/runtime deps stay optional when possible. Tooling details: [reference.md](reference.md#environment-tooling).
 
 ## Performance (only when relevant)
@@ -63,6 +81,12 @@ Apply this section **after profiling or a known hot path** — not by default on
 
 - Avoid `print()` in production/service paths; use structured logging.
 - Use **Loguru** only when the project already does; otherwise stdlib `logging`. Details: [reference.md](reference.md#observability-loguru).
+- Reusable libraries: `logging.getLogger(__name__)` — do **not** reconfigure or hijack the root logger.
+- Do not pre-format with f-strings or `.format()`; pass args so interpolation is lazy: `logging.info("User %s", user_id)`.
+
+## Serialization
+
+- Never **`pickle`** untrusted data (RCE). Use JSON, **msgspec**, or the project's existing serializer — do not add msgspec unprompted. Details: [reference.md](reference.md#serialization).
 
 ## SQLite
 
@@ -77,4 +101,4 @@ Apply this section **after profiling or a known hot path** — not by default on
 
 ## Additional detail
 
-See [reference.md](reference.md) for macOS terminal notes, concurrency (3.14+), memory/GC, Rust/PyO3, and CLI layout.
+See [reference.md](reference.md) for macOS terminal notes, concurrency (3.14+ / free-threading internals), profiling frame pointers, AST transforms, data notebooks, Rust/PyO3, and CLI layout.

@@ -53,7 +53,8 @@ class AppConfig(BaseModel):
 |------|----------|
 | **`cProfile`** | Exact call counts and cumulative time; local dev |
 | **Pyinstrument** | Statistical snapshots; lower overhead; production-like runs |
-| **Linux `perf`** | Python 3.12+; hardware/kernel events; system-wide bottlenecks |
+| **Linux `perf` / eBPF** | Python 3.12+; hardware/kernel events; system-wide bottlenecks |
+| **Frame pointers** | CPython **builds** for accurate `perf`/eBPF flame graphs (~0.5–2.3% overhead). Do not rebuild CPython unless production observability is the task. |
 
 Run a profiler before recommending `__slots__`, PyO3, Cython, or concurrency rewrites.
 
@@ -94,17 +95,27 @@ Incremental GC reduces stop-the-world pauses — relevant when upgrading runtime
 
 Many projects still run 3.9–3.12 — do not assume 3.14 features.
 
+When **actually targeting free-threaded CPython** (not "we might someday"):
+
+- **PyMutex** for short critical sections — do not assume the GIL serializes everything.
+- **Deferred reference counting** changes object lifetime; C extensions that rely on GIL-protected refcounts need an audit before enabling free-threading.
+- **CPython JIT**: treat as experimental. Any JIT recommendation must address maintenance, free-threading compatibility, and measurable success metrics (Steering Council expects a PEP). Do not enable JIT in production unless the project's runtime already does.
+
+## AST transforms (gated)
+
+Use the **`ast`** module to parse/rewrite/compile Python only when the task is a **code transform** (auto-tracing spans around function bodies, annotation syntax backports). Do not use AST rewriting for ordinary features.
+
 ## Environment tooling
 
-**uv** (new projects only):
+**uv** — new projects, or existing repos that already use it:
 
 ```bash
 uv venv
-uv pip install -r requirements.txt
+uv lock && uv sync
 uv run pytest
 ```
 
-Existing repos: keep `pip` / `.venv` unless migration is explicitly requested.
+Existing pip repos: keep `pip` / `.venv` unless migration is explicitly requested. Do not mix `uv` and `pip` in the same project.
 
 ## Observability (Loguru)
 
@@ -117,6 +128,19 @@ logger.bind(request_id=req_id).info("processed", count=n)
 ```
 
 Prefer JSON in production; `print()` only for CLI user-facing output.
+
+Root-logger and lazy-interpolation rules: **`python`** Observability section (stdlib). Loguru uses bound context, not `%s` args.
+
+## Serialization
+
+- Never `pickle.load` / `pickle.loads` on untrusted bytes (RCE).
+- Prefer **msgspec** for fast typed binary/JSON codecs, or JSON/`pydantic` at existing boundaries.
+- Follow the project's current serializer; do not add msgspec unprompted.
+
+## Data workflows (gated)
+
+- **Marimo**: when the user wants git-friendly notebooks (clean `.py`, top-to-bottom, automatic deps). Do not migrate Jupyter unprompted.
+- **Great Tables**: when producing publication-quality tables from pandas/Polars (currencies, dates, sparklines) in a script. Do not add it for ordinary DataFrame prints.
 
 ## Explicit failures (Rust-inspired)
 
@@ -163,9 +187,17 @@ managers/       # cross-cutting orchestration
 - Thin wrapper (`LocalLLM`); workflows depend on interface, not backend.
 - Local stacks (Ollama, llama.cpp): prefer tool calling to ground responses in project code.
 
+**Serving / LLMOps (gated)** — only when the product routes, serves, or ships models:
+
+- **Gateway**: semantic version → weight location; hot-swap in memory (avoid frozen paths / "model rot").
+- **Registry**: single source of truth. Bind weights to **provenance** (training code version, dataset hash, hyperparameters) so regressions can be traced. Prompt registry for template versions. Use **MLflow** (or the project's existing tracker) — do not introduce MLflow if there is no MLOps stack.
+- **Edge** (gated): when shipping weights to devices, a **manifest** (lockfile for artifacts) should drive targeted **delta** downloads — not full recopies on every update.
+
 ## Anti-patterns
 
 - Monolithic 500+ line modules mixing SQL, parsing, and CLI
 - Stub modules duplicating real implementations
 - Temporary `fix_*.py` scripts left after refactor
 - Premature `__slots__`, PyO3, Cython, or 3.14 concurrency without profiling/version fit
+- `pickle` for untrusted or cross-trust data
+- Patching a dependency at definition (`requests.get`) when the SUT imported a local name

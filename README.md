@@ -25,14 +25,14 @@ Restart Cursor or open a new agent chat after installing.
 
 | Invoke | Reads |
 |--------|--------|
-| `Use the pipeline agent to …` | orchestrates brain → dev → cr subagents |
-| `Use the dev agent to …` | `developer-workflow`, `python` |
-| `Use the CR agent on …` | `code-review`, `python` (for `.py`) |
-| `Use the brain agent for …` | `system-architecture`, `python/reference.md` |
+| `Use the pipeline agent to …` | orchestrates brain → dev → cr → dev → cr → dev → cr subagents |
+| `Use the dev agent to …` | `developer-workflow` (loop, integration tests, forensic debug), `python` |
+| `Use the CR agent on …` | `code-review` (meaningful tests, AI/bugfix lenses, domain-gated suggestions), `python` (for `.py`) |
+| `Use the brain agent for …` | `system-architecture` (inheritance tests, sagas/reliability, SSE, LLM fleet), `python` / `python/reference.md` |
 | `Use Dima to …` / `Use the Dima agent …` | `idea-sparring` (discussion only — no plan or code) |
 | `Use curate-cursor-knowledge: …` | routes, dedups, curation report |
 
-**Pipeline** runs brain (plan + Documentation section), dev (implement + module memory), then cr (review diff) in one session. The pipeline presents the **full** CR report (not a short verdict) plus an explicit **commit readiness** call. Opt out with `plan only`, `skip plan`, or `review only`.
+**Pipeline** runs brain (plan + Documentation section), dev (implement + module memory), cr (review), then two more dev→cr fix cycles driven by review comments, in one session. The pipeline presents the **full final CR report** (not a short verdict) plus an explicit **commit readiness** call. Opt out with `single pass` (legacy one-round), `plan only`, `skip plan`, or `review only`.
 
 Brain plans and dev implementations should include **Documentation** updates when the project uses module memory (project `.cursor/rules/` or companion `.md` files). CR verifies doc sync.
 
