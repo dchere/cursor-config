@@ -79,13 +79,17 @@ Only when the PR’s domain matches; keep severity at **Suggestion** or **Nice t
 
 ## Feedback format
 
+Delivery wrapping: **developer-workflow** Output style. Lead with the highest-severity finding, or "no Critical — ready to merge" if none.
+
 For each issue:
 
 1. Location (file / function)
 2. What is wrong or risky
 3. Concrete fix suggestion
 
-End with a brief summary: overall assessment and merge recommendation if appropriate.
+Show at most 5 findings in the lead list; further items go under Later / Nice to have.
+
+End with overall assessment, merge recommendation if appropriate, and one next action (first Critical to fix, or commit).
 
 ## Boundaries
 

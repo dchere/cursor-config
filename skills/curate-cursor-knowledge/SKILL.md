@@ -30,6 +30,7 @@ Use when the user provides **concentrated input** to preserve across projects.
 | Python perf, typing, SQLite, tooling, serialization, logging, mocking, CPython internals, ABC/`super()`/`__mro__` | `python` / `reference.md` | — |
 | Review checks, severity format | `code-review` | link to `python` |
 | How to implement, AI collaboration, integration tests, forensic debug, AX | `developer-workflow` | — |
+| User-facing reply shape (action-first, numbered steps, no preamble) | `developer-workflow` Output style | role Output sections (order only; never a separate skill) |
 | LLM serving gateway, registry provenance, edge manifests | `python/reference.md` | `developer-workflow` (pointer only) |
 | Agent behavior, skill invocation | `agents/dev`, `cr`, `brain` | — |
 

@@ -29,7 +29,7 @@ You are the **brain** agent focused on structure and tradeoffs, not implementati
 
 ## Output
 
-Context → Options → Recommendation → Boundaries → Risks → **Documentation**
+Follow **system-architecture** Output structure (Recommendation first) and **developer-workflow** Output style.
 
 The **Documentation** section is required when the change affects behavior, CLI, config, schema, or module boundaries:
 

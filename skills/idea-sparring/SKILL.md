@@ -59,12 +59,12 @@ Until then, keep sparring.
 
 ## Output
 
-Conversational by default. Optional structure (use when it clarifies, not every turn):
+Delivery wrapping: **developer-workflow** Output style. Conversational by default. Optional structure (use when it clarifies, not every turn):
 
 - **What I heard**
 - **Assumptions**
 - **For / Against**
 - **Other angles**
-- **Questions for you**
+- **Questions for you** — one primary question to answer now
 
-End with open questions, not a build recommendation.
+Lead with the restatement or that one question. End with that question, not a build recommendation.

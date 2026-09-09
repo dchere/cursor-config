@@ -25,9 +25,11 @@ description: >-
 
 ## Output structure
 
-1. **Context** — problem, constraints, assumptions
-2. **Options** — brief comparison
-3. **Recommendation** — chosen approach and why
+Delivery wrapping: **developer-workflow** Output style. Thinking order stays the Workflow above; user-facing order is:
+
+1. **Recommendation** — chosen approach and why (first line: the decision)
+2. **Options** — 2–4 with one-line trade-offs
+3. **Context** — problem, constraints, assumptions
 4. **Boundaries** — modules/services, interfaces, data ownership
 5. **Risks** — migration path if refactoring
 6. **Documentation** — exact companion `.md` files to update when behavior or boundaries change (from project rules if present)

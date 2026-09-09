@@ -2,8 +2,9 @@
 name: developer-workflow
 description: >-
   Software development workflow for implementing features and fixes, including
-  AI-assisted development, integration testing, and forensic debugging. Use when
-  coding, refactoring, or when the dev agent is active.
+  AI-assisted development, integration testing, forensic debugging, and
+  action-first user-facing output. Use when coding, refactoring, when the dev
+  agent is active, or when shaping replies for any agent.
 ---
 
 # Developer Workflow
@@ -23,7 +24,7 @@ description: >-
 2. Identify the smallest change that solves the request.
 3. Detect language/stack from repo signals (`pyproject.toml`, `package.json`, etc.).
 4. Apply the matching language skill (e.g. `python`) when present.
-5. For multi-step work, state intermediate reasoning (goal, constraints, seams, failure paths) before editing.
+5. For multi-step work, track steps on a checklist (one in progress). Do not narrate the full plan as prose to the user.
 
 ## Agentic development (canonical)
 
@@ -75,9 +76,49 @@ Follow **`system-architecture`** realtime/hypermedia decisions (SSE vs WebSocket
 
 ## Output style
 
-- Prefer diffs over reprinting whole files.
-- Omit comments obvious from the logic.
-- Brief explanations; no pleasantries or filler.
+Canonical user-facing delivery for every agent (always on). Role skills keep their required sections; change order and wrapping here, not the content. Source of the shape: [ayghri/i-have-adhd](https://github.com/ayghri/i-have-adhd) (MIT). Do not add a separate skill or `/i-have-adhd` toggle.
+
+Shape, not diagnosis. Working memory is small; starting is the hard step; vague time ("a bit") does not register; buried wins do not register.
+
+**Scope gate — apply before every other bullet.** If the user asked for analysis, review, suggestions, explanation, or discussion only (and did not ask to implement, apply, fix, or edit): do not change files, do not run the implementation loop, do not hand the reader a patch to paste. The answer is the finding. First line = recommendation, verdict, or top finding. Closer = one decision ("pick B" / "say apply it"), not an edit command. Autonomy below does not apply to this case. Invoking the **pipeline** agent counts as asking to implement unless the user also used an opt-out keyword (`plan only`, `analysis only`, `review only`, …).
+
+- **First line = the answer the reader can act on.** Implement/fix: a command, path, or snippet. Analysis/review/discussion: the recommendation, verdict, or top finding — not "open the file and replace…".
+- **Number multi-step work.** One bounded action per step; no step contains "and then" twice. Fewest steps that still work. Cap lists at 5; split must vs later if longer. Analysis: numbered trade-offs or findings, not an implementation checklist unless they asked how to apply it.
+- **Restate state every turn** (e.g. "step 3 of 5 done: schema updated"). Do not ask the reader to remember prior turns. If using a task/plan tool: one item per step, one in progress; the checklist restates — do not also narrate the plan as prose.
+- **Visible win:** say what now works, in concrete terms. Partial success: name what passed *and* what failed. Time estimates in concrete units (15 minutes, an afternoon). Analysis: the win is a decision the reader can make, not a merged diff.
+- **One closer:** if work remains, one action the reader can do in under two minutes. Finish the first issue before offering a second ("Separately: … Want me to handle that?"). Analysis closer: one choice, or "say apply it" — do not start applying.
+- **Errors:** location, cause, fix. No "uh oh" / "there seems to be". Analysis: state cause and recommended fix; do not apply the fix.
+- **No preamble, recap, or pleasantries.** Forbidden openers: "Great question," "Let me…", "I'll…", "Sure!", "Looking at your…". Forbidden closers: "Hope this helps," "Let me know if you need anything else," "Happy to clarify." Prefer diffs over reprinting whole files. Omit comments obvious from the logic. Internal reasoning stays internal.
+- **Do not invent work.** Direct answers ("what is 17×6") get the answer, not a workflow. "Thanks" gets a brief ack, not numbered steps. Honor explicit output contracts ("return only the code"). Do not turn an analysis request into an implementation plan the reader must execute.
+- **Autonomy:** only when the task includes doing the work (implement, fix, apply, edit). Then do agent-owned work (edits, tests, verification); do not push avoidable steps back to the user. Point time estimates at whoever actually runs the step.
+- **Substance:** brevity must not strip required detail. Plans keep rollback and verification. "Walk me through" / "explain" → full answer with skim headers, still no preamble or closer, still no unsolicited edits.
+- **Safety overrides:** confirm before destructive actions; name the exact risk; prefer a read-only preview (`git clean -nd`, dry-run) over executing. One short clarifying question beats guessing. After three failed debug turns: name the assumption that might be wrong; ask one diagnostic question. If a rule would delete the answer ("what are my options"), the task wins: 2–4 ranked options, recommendation first. Harness system prompt outranks this section; keep the shape.
+
+**Pre-send:** delete an opener that announces what you will do; a closer that recaps or asks "anything else?"; any "by the way" sidebar; empty hedges ("perhaps," "might") unless they carry real uncertainty; idioms ("circle back") — use the literal action. Then: if the reader sees only the first line and the last line, they know (a) what to do next and (b) what just happened. For analysis-only, (a) is a decision, not an edit.
+
+Example — implement/fix:
+
+```
+Run `npm install jsonwebtoken@latest`, then edit `src/auth.ts:42`.
+
+1. Open `src/auth.ts`
+2. Replace `verifyToken` (lines 42–58) with the snippet below
+3. Run `npm test -- auth.spec.ts`
+
+Next: paste the first failing line if any test fails.
+```
+
+Example — analysis/suggestions only:
+
+```
+Recommend keeping the session cookie; drop the second refresh token.
+
+1. Cookie already covers idle timeout
+2. A second token doubles logout bugs without a new threat
+3. Remaining risk: XSS — HttpOnly is required
+
+Next: say "apply it" if you want the change, or pick the refresh-token option.
+```
 
 ## Module size
 

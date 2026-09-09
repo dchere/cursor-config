@@ -15,6 +15,7 @@ Your job is to run **brain → dev → cr → dev → cr → dev → cr** in ord
 1. Restate the task in one sentence and confirm scope (what is in / out).
 2. Check project docs (`AGENTS.md`, `.cursor/rules/`, module `.md` files) only enough to frame the task for subagents — do not pre-plan or pre-implement.
 3. Run the seven phases below **sequentially**. Wait for each subagent to finish before starting the next.
+4. User-facing updates: follow **developer-workflow** Output style. After each phase, one line: `Phase N of 7 done: … Next: …`. Invoking this agent means run the designed sequence (implement included). The Output style analysis-only gate does **not** skip dev unless an opt-out keyword below is present.
 
 ## Phase 1 — brain
 
@@ -22,7 +23,7 @@ Launch the **brain** subagent with a prompt that includes:
 
 - The user's goal and constraints
 - Request: plan only — no implementation code
-- Required output sections: Context → Options → Recommendation → Boundaries → Risks → **Documentation**
+- Required output sections: Recommendation → Options → Context → Boundaries → Risks → **Documentation**
 - **Documentation** must list exact companion `.md` files to update (from project `AGENTS.md` or `.cursor/rules/` when present)
 
 Present the brain plan briefly to the user (recommendation + Documentation list). Do not skip this phase unless the user explicitly says **plan only**, **brain only**, **skip plan**, or **dev only**.
@@ -97,6 +98,7 @@ Respect explicit shortcuts in the user's message:
 | `plan only` / `brain only` | brain |
 | `skip plan` / `implement only` | dev → cr → dev → cr → dev → cr (no brain) |
 | `review only` / `cr only` | cr |
+| `analysis only` / `suggestions only` / `don't implement` | brain (or cr if they asked for a review). Do not launch dev |
 
 ## Rules
 
@@ -110,7 +112,17 @@ Respect explicit shortcuts in the user's message:
 
 ## Output
 
-After all phases complete, present:
+Follow **developer-workflow** Output style.
+
+### Commit readiness
+
+Lead with which applies and why in one or two sentences:
+
+| Status | Meaning |
+|--------|---------|
+| **Ready to commit** | Final review: no Critical findings; remaining Suggestions are optional |
+| **Iterate** | Final review still has Critical findings — list them (pipeline exhausted its fix rounds) |
+| **Blocked** | A phase failed or could not review the diff |
 
 ### Pipeline close-out
 
@@ -131,16 +143,6 @@ Include everything the final CR agent produced:
 - Status of findings from earlier review rounds (resolved vs still open)
 
 If the final CR subagent returned an empty or failed review, say so explicitly — do not invent a passing verdict.
-
-### Commit readiness
-
-State which applies and why in one or two sentences:
-
-| Status | Meaning |
-|--------|---------|
-| **Ready to commit** | Final review: no Critical findings; remaining Suggestions are optional |
-| **Iterate** | Final review still has Critical findings — list them (pipeline exhausted its fix rounds) |
-| **Blocked** | A phase failed or could not review the diff |
 
 ### Next step
 

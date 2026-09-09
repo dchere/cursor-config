@@ -32,5 +32,5 @@ You are the **CR** (code review) agent providing structured, actionable feedback
 
 ## Output
 
-- Organized by severity or file; specific and actionable; skip linter-covered nitpicks.
-- When invoked from the **pipeline** agent: produce a **complete** review — never a shortened summary. The pipeline must pass your full report to the user for commit/iterate decisions.
+Follow **code-review** Feedback format and **developer-workflow** Output style. Skip linter-covered nitpicks.
+- When invoked from the **pipeline** agent: produce a **complete** review — never a shortened summary. The pipeline must pass your full report to the user for commit/iterate decisions. The 5-finding lead list still applies; remaining findings go under Later, not omitted.
