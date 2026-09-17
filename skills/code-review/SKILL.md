@@ -2,8 +2,9 @@
 name: code-review
 description: >-
   Code review checklist and severity-based feedback format for PRs and diffs,
-  including AI-generated code, meaningful tests, and Python security/style
-  flags. Use when reviewing pull requests, diffs, or when the cr agent is active.
+  including AI-generated code, evidence-grounded findings, Python security/style
+  flags, and supply-chain/auth checks. Use when reviewing pull requests, diffs,
+  or when the cr agent is active.
 ---
 
 # Code Review
@@ -14,6 +15,14 @@ description: >-
 2. Apply the matching language skill when reviewing language-specific code.
 3. Judge **test meaningfulness**, not only that tests exist or are green.
 4. Provide actionable feedback; do not rewrite code unless asked.
+
+## Before posting a finding
+
+Match review depth to the PR (auth/CI → security; loops/ORM → perf; behavior change → tests). Do **not** spawn extra reviewer agents.
+
+1. **Ground:** open the caller and import of the changed symbol; do not comment from the hunk alone.
+2. **Cluster:** if changed files share a call path or import, review the interaction, not each file in isolation.
+3. **Falsify:** try to invalidate using existing guards, framework defaults, or missing evidence. If it fails this gate, drop it or mark **Nice to have**.
 
 ## Checklist
 
@@ -32,7 +41,19 @@ For **Python** (`.py`): apply the `python` skill for validation, methods, loggin
 Flag from the diff when visible:
 
 - Deep inheritance where composition (or `@property`) would simplify
+- `os.path.commonprefix()` used as a path/URL containment check (**Critical** if it gates authz; otherwise **Suggestion** — use `os.path.commonpath()`)
+- Newly added third-party GitHub Action `uses:` without a 40-character commit SHA (**Critical**); floating tags on workflows the PR already touches (**Suggestion**)
+- `.github/dependabot.yml` added or edited with no update cooldown (**Suggestion** — e.g. 7 days; do not add Dependabot to a repo that lacks it)
 - Unvalidated external input reaching business logic
+- OAuth authorization-code flow missing PKCE (`code_challenge`) or CSRF `state`, or long-lived refresh tokens stored in the browser / localStorage (**Critical** — only if the PR implements OAuth)
+- Service worker / Web Push added without `worker-src` / `connect-src` in CSP (**Suggestion**)
+- Attacker-controlled strings passed to `__raw_json__`, `RawJSON`, or concatenated into JSON (**Critical** — bypasses structural escaping)
+- `vars(obj)`, `obj.__dict__`, `'x' in obj.__dict__`, or `copy.copy(obj)` on instances in a hot path (**Suggestion** — 3.11+ attribute deopt; do not demand `__slots__` without a profile)
+- `asyncio.all_tasks()` called from a non-loop thread (**Suggestion** — free-threading omits eager tasks)
+- `asyncio.Event` / `Condition` used as a multi-waiter value bus (**Suggestion** — `system-architecture` async shared state)
+- `Mock()` on an `async def` (use `AsyncMock`) (**Suggestion**)
+- Session-scoped async pytest fixtures without a matching event-loop scope (**Suggestion**)
+- `lazy from x import *` (**Critical** if targeting 3.15+ — invalid)
 - List membership checks inside loops on growing collections
 - `pickle` load/dumps on untrusted or cross-trust data (**Critical**)
 - Cleartext `http://` for network clients that should be `https://` (**Critical** if it is a real client URL)
@@ -49,9 +70,12 @@ Do **not** require:
 
 - Rewriting `Annotated[...]` to proposed `@` metadata shorthand
 - `__slots__`, PyO3, Cython, frame-pointer CPython builds, or 3.14 concurrency without evidence in the PR
-- Migrating the repo to **uv**, **Datastar**, **Marimo**, **Temporal**, **Arcjet**, or an LLM **Gateway** unless the PR already targets that stack
+- Migrating the repo to **uv**, **Datastar**, **Marimo**, **Temporal**, **Arcjet**, **Hydra**, **Hypothesis**, or an LLM **Gateway** unless the PR already targets that stack
+- `profiling.sampling`, `lazy import`, or `frozendict` unless `requires-python` / CI already includes 3.15+
+- Frozen display syntax (`f{…}`), `from module export`, `__json__` protocols, zizmor, rapidlog, turbohtml, django-crawl, or replacing Celery with Django Tasks
+- Spawning ephemeral reviewer sub-agents or running an AST pipeline as a merge gate
 
-When a PR claims performance improvements, expect profiler output (`cProfile`, Pyinstrument, or benchmarks) — not hand-wavy Big-O claims alone. Optional scaling tests on critical paths are a **Suggestion**, not a merge blocker.
+When a PR claims performance improvements, expect profiler output (`profiling.sampling` on 3.15+, else `cProfile` / Pyinstrument, or benchmarks) — not hand-wavy Big-O claims alone. Optional scaling tests on critical paths are a **Suggestion**, not a merge blocker.
 
 ## Domain-gated suggestions (never merge blockers)
 
@@ -65,10 +89,22 @@ Only when the PR’s domain matches; keep severity at **Suggestion** or **Nice t
 | Adds bot/signup/PII protection | In-process / WASM-local analysis; project security SDK if already used | `developer-workflow` |
 | Adds Jupyter for data workflows | Marimo only if git-friendly notebooks are in scope | `python/reference.md` |
 | Adds realtime UI on a Python app | Datastar only if hypermedia/SSE is already preferred | `developer-workflow` |
+| Touches Django ORM updates / test fixtures | `F()` for races; `setUpTestData` for class fixtures; Django 6.1: `DB_CASCADE` / `fetch_peers` if the PR does Python-side cascades or N+1 | `python/reference.md` |
+| FastAPI + existing TS client | OpenAPI-generated types | `developer-workflow` |
+| Edits GitHub Actions workflows | Pin new third-party actions to commit SHA | `developer-workflow` |
+| Edits Dependabot config | Update cooldown (e.g. 7 days) | `developer-workflow` |
+| Implements OAuth/OIDC | PKCE + `state`; refresh tokens server-side | `code-review` flags above |
+| Adds Web Push / service worker | CSP `worker-src` and `connect-src` | `code-review` flags above |
+| Publishes to an existing PyPI version | No new files after the 14-day window | `python/reference.md` |
+| Adds a parser/serializer and Hypothesis is already a dep | Property-based tests for that boundary | `python` |
+| Registers external plugins / model nodes | Shared HTTP schema; probe on register; reject unparseable payloads | `system-architecture` |
+| “Fixes” a slow query by adding async/threads | Query plan and indexes first | `system-architecture` |
+| Adds SSE/WebSockets to a WSGI-only deploy | ASGI sidecar — only if not already unified ASGI | `system-architecture` |
 
 ## AI-generated and bugfix lenses
 
 - **AI-generated diffs**: look for missing edge cases, weak or absent runnable tests, and boundary coverage gaps relative to the `developer-workflow` implementation loop. Do not demand a ritual write-up of the seven steps — demand the evidence (rules/constraints reflected in tests and increments).
+- **Compound / cross-file findings**: follow **Before posting** (ground, cluster, falsify). Cite the concrete path. If it cannot be falsified from repo files, drop it or mark **Nice to have**.
 - **Bugfix PRs** without clear root cause: recommend **`diff`ing logs/artifacts** from a successful baseline vs the failing run (**Suggestion** / **Nice to have**) — see `developer-workflow` forensic debugging. Do not block merge solely for missing a log diff.
 
 ## Severity labels

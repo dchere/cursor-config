@@ -51,12 +51,18 @@ class AppConfig(BaseModel):
 
 | Tool | Use when |
 |------|----------|
-| **`cProfile`** | Exact call counts and cumulative time; local dev |
-| **Pyinstrument** | Statistical snapshots; lower overhead; production-like runs |
-| **Linux `perf` / eBPF** | Python 3.12+; hardware/kernel events; system-wide bottlenecks |
-| **Frame pointers** | CPython **builds** for accurate `perf`/eBPF flame graphs (~0.5–2.3% overhead). Do not rebuild CPython unless production observability is the task. |
+| **`profiling.sampling`** (Tachyon, 3.15+) | Default sampler: ~zero overhead; `attach` by PID; `--async-aware`, `--native` |
+| **`profiling.tracing`** / **`cProfile`** | Exact call counts (3.15: `cProfile` is an alias; `profile` is deprecated → 3.17) |
+| **Pyinstrument** | Statistical snapshots on **<3.15** or when already in the project |
+| **Linux `perf` / eBPF** | Hardware/kernel events; system-wide. **3.15+** CPython ships frame pointers by default (PEP 831). Do not rebuild CPython on 3.15+ unless a custom build is already the task. |
 
-Run a profiler before recommending `__slots__`, PyO3, Cython, or concurrency rewrites.
+**3.15 sampling modes** (pick one bottleneck): `--mode wall` (elapsed, default), `cpu` (active CPU), `gil` (lock hold), `exception` (in-flight errors). Outputs: `--flamegraph`, `--heatmap`, `--gecko` (Firefox Profiler), `--collapsed`, `--pstats`. Differential flame graphs only when comparing two recordings of the same workload.
+
+Do not recommend Tachyon on 3.14-or-older runtimes.
+
+### Attribute access
+
+Python 3.11+: `vars(obj)`, reading `__dict__`, `'attr' in obj.__dict__`, or `copy.copy(obj)` on an instance deopts specialized `LOAD_ATTR` to a generic lookup (up to ~3× slower after). Do not do this on hot-path objects. Diagnostic dumps belong in one-off scripts, not request loops. Do not add `__slots__` without a profile.
 
 ### Algorithmic complexity
 
@@ -99,7 +105,17 @@ When **actually targeting free-threaded CPython** (not "we might someday"):
 
 - **PyMutex** for short critical sections — do not assume the GIL serializes everything.
 - **Deferred reference counting** changes object lifetime; C extensions that rely on GIL-protected refcounts need an audit before enabling free-threading.
-- **CPython JIT**: treat as experimental. Any JIT recommendation must address maintenance, free-threading compatibility, and measurable success metrics (Steering Council expects a PEP). Do not enable JIT in production unless the project's runtime already does.
+- **CPython JIT**: Steering Council moratorium pending a formal PEP. Do not enable JIT in production unless the project's runtime already does. Any JIT recommendation must address maintenance, free-threading compatibility, and measurable success metrics.
+- **`asyncio.all_tasks()`**: from a non-loop thread, eager tasks can be missing (creation race). Query from the loop thread, or track tasks you spawn.
+
+**Python 3.16+:** `yield from` inside async generators is valid (PEP 828); `StopAsyncIteration.value` carries the subgenerator result. Do not use on 3.15-or-older.
+
+## Live diagnostics (gated)
+
+One-off debugging of a running process — not production request paths:
+
+- Hung process: `python -m profiling.sampling dump --async-aware <pid>` (3.15+)
+- In-memory instances: `gc.get_objects()` filtered with `isinstance` — do not leave in hot paths (also trips `__dict__` deopt if you poke attributes via `__dict__`)
 
 ## AST transforms (gated)
 
@@ -116,6 +132,8 @@ uv run pytest
 ```
 
 Existing pip repos: keep `pip` / `.venv` unless migration is explicitly requested. Do not mix `uv` and `pip` in the same project.
+
+Publishing: do not upload new files to an existing PyPI version after the 14-day window; prefer attestations when the project already publishes them. Hardware-specific wheels (GPU / ISA): follow existing installer support for wheel variants — do not invent variant filenames.
 
 ## Observability (Loguru)
 
@@ -135,12 +153,28 @@ Root-logger and lazy-interpolation rules: **`python`** Observability section (st
 
 - Never `pickle.load` / `pickle.loads` on untrusted bytes (RCE).
 - Prefer **msgspec** for fast typed binary/JSON codecs, or JSON/`pydantic` at existing boundaries.
+- Do not wrap attacker-controlled strings in `__raw_json__` / `RawJSON` or concatenate them into JSON (injection). Recognize `__json__` only if the runtime already implements that protocol; do not add it unprompted.
 - Follow the project's current serializer; do not add msgspec unprompted.
 
 ## Data workflows (gated)
 
 - **Marimo**: when the user wants git-friendly notebooks (clean `.py`, top-to-bottom, automatic deps). Do not migrate Jupyter unprompted.
 - **Great Tables**: when producing publication-quality tables from pandas/Polars (currencies, dates, sparklines) in a script. Do not add it for ordinary DataFrame prints.
+- **Pointblank**: tabular checks (`rows_distinct`, missing-value reports) only if the project already uses it or the user asks. Do not add it unprompted.
+- **Polars streaming on multi-socket machines**: work-stealing can cross NUMA nodes — pin/limit threads if profiling shows cross-node stalls. Only when the workload is already Polars streaming at that scale.
+
+## Django (gated)
+
+Only if the project already uses Django. Do not introduce Django.
+
+- Race-free updates: `F()` expressions, not read-modify-write in Python.
+- Tests: `setUpTestData` for class-scoped fixtures (once per class).
+- Django 6.x: async ORM/cache/auth/sessions/signals are in-tree. 6.1: prefer `on_delete=models.DB_CASCADE` over Python-side cascades; `fetch_peers` when the PR introduces N+1 related access. 6.0 Tasks: only if the project has no worker stack yet — do not migrate Celery unprompted.
+- **django-crawl**: optional route crawl (broken links, unhandled exceptions, CSP) only if already in the test suite or the user asks.
+
+## Config (gated)
+
+**Hydra** (`@hydra.main`, config groups, `--multirun`): only if the project already uses it or the user asks. Do not migrate `pydantic`/JSON config to Hydra unprompted.
 
 ## Explicit failures (Rust-inspired)
 
@@ -192,6 +226,7 @@ managers/       # cross-cutting orchestration
 - **Gateway**: semantic version → weight location; hot-swap in memory (avoid frozen paths / "model rot").
 - **Registry**: single source of truth. Bind weights to **provenance** (training code version, dataset hash, hyperparameters) so regressions can be traced. Prompt registry for template versions. Use **MLflow** (or the project's existing tracker) — do not introduce MLflow if there is no MLOps stack.
 - **Edge** (gated): when shipping weights to devices, a **manifest** (lockfile for artifacts) should drive targeted **delta** downloads — not full recopies on every update.
+- Multi-step model tasks: an evaluation harness (correctness, coverage, format), not informal spot checks. Prompting tactics (including CoT) are product choices, not architecture requirements.
 
 ## Anti-patterns
 
@@ -200,4 +235,6 @@ managers/       # cross-cutting orchestration
 - Temporary `fix_*.py` scripts left after refactor
 - Premature `__slots__`, PyO3, Cython, or 3.14 concurrency without profiling/version fit
 - `pickle` for untrusted or cross-trust data
+- `os.path.commonprefix()` for filesystem/URL containment (use `os.path.commonpath()`)
+- Reading `__dict__` on hot-path instances (3.11+ attribute deopt)
 - Patching a dependency at definition (`requests.get`) when the SUT imported a local name

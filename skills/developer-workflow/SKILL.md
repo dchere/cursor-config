@@ -52,11 +52,13 @@ After AI-generated changes: run tests/linters; consider a **cr** agent pass. Do 
 
 - Integration tests are the highest-leverage check: localized unit tests often pass while the system fails end-to-end from mismatched assumptions at boundaries.
 - When changing a boundary, exercise the real seam as the project already does — do not mock away the thing under test.
-- Language-specific mocking (e.g. patch where the name is used): see **`python`**.
+- Language-specific mocking (e.g. patch where the name is used) and **Hypothesis**: see **`python`**. Do not add Hypothesis unprompted.
 
 ## Forensic debugging
 
 When a run fails and a successful baseline exists, **`diff` logs or artifacts** from the good run against the failing one before guessing. Isolate environment or data-specific deltas; do not shotgun-change code.
+
+Live process (Python 3.15+): `python -m profiling.sampling dump --async-aware <pid>`. In-memory instances: `gc.get_objects()` — diagnostic only; details **`python/reference.md`**.
 
 ## LLM product engineering (gated)
 
@@ -69,10 +71,22 @@ Only when the task is building LLM/agent products — not ordinary features.
 
 Follow **`system-architecture`** realtime/hypermedia decisions (SSE vs WebSockets, DOM morphing). If implementing hypermedia/SSE and the user wants to avoid an SPA, consider **Datastar**. Follow the existing frontend stack otherwise; do not introduce Datastar unprompted.
 
+FastAPI + an existing TypeScript client: Pydantic/OpenAPI is the source of truth; generate `api-types.ts` (`openapi-typescript` or `@hey-api/openapi-ts`). Do not add a TS client or Datastar unprompted.
+
+Mixed short HTTP + SSE/WebSockets: process split is **`system-architecture`** Process topology — do not split a working unified ASGI app unprompted.
+
 ## In-app security (gated)
 
 - Bot / signup-spam / prompt-injection layers (e.g. **Arcjet**): only if the project uses them or the user asks.
 - Keep PII detection **in-process** (e.g. WASM sandbox) so sensitive data does not leave the environment.
+
+## GitHub Actions (gated)
+
+Only when the change edits `.github/workflows/`:
+
+- Pin third-party actions to a 40-character commit SHA, not a floating tag.
+- If the project already uses **zizmor**, keep it. Do not add zizmor unprompted.
+- When editing `.github/dependabot.yml`: set an update cooldown (e.g. 7 days). Do not add Dependabot to a repo that lacks it.
 
 ## Output style
 

@@ -3,7 +3,8 @@ name: python
 description: >-
   Python standards for layout, typing, testing, profiling, tooling, logging,
   serialization, and data boundaries. Use when writing or reviewing Python
-  code, packages, pytest, or pyproject.toml.
+  code, packages, pytest, pyproject.toml, or Python 3.15+ language/profiler
+  choices.
 ---
 
 # Python
@@ -37,7 +38,7 @@ description: >-
 ## Methods
 
 - **Instance methods** — mutate or read instance state via `self`.
-- **`@classmethod`** — alternative constructors or registries (operate on the class).
+- **`@classmethod`** — alternative constructors or registries (operate on the class). Registry collision detection and `__init_subclass__` auto-register: **`system-architecture`**.
 - **`@staticmethod`** — prefer a **module-level function** unless the utility must live in the class namespace for API/discovery reasons.
 
 ## Contracts and inheritance
@@ -59,6 +60,9 @@ description: >-
 - Prefer **integration tests** when a change crosses a service, DB, or API boundary — unit tests often pass while the seam fails. Workflow: **`developer-workflow`**.
 - Prefer pure functions and isolated DB/API boundaries for testability.
 - **Patch where the name is used, not where it is defined.** If the SUT does `from requests import get`, patch `that_module.get`, not `requests.get`.
+- Spies: `unittest.mock.patch.object(..., wraps=real, autospec=True)` when the real function must run and you only need call/return records.
+- **Hypothesis** only if the project already uses it or the user asks — do not add property-based tests unprompted. Parsers/serializers: prefer Hypothesis when it is already a dependency.
+- Async tests: `AsyncMock` for coroutines; session-scoped async fixtures need a matching event-loop scope (`loop_scope="session"`) to avoid "Event loop is closed" / `ScopeMismatch`.
 - **E2E browser tests**: use **Playwright** only when the project already does; its codegen can bootstrap scripts — do not introduce Playwright without being asked.
 
 ## Dependencies and tooling
@@ -74,7 +78,8 @@ description: >-
 Apply this section **after profiling or a known hot path** — not by default on every change.
 
 - Prefer **O(1)** membership via `set` / `dict` over list scans in hot loops.
-- Profile before optimizing: `cProfile` (deterministic), **Pyinstrument** (low-overhead sampling), or Linux **`perf`** (3.12+) for system-wide view — see [reference.md](reference.md#profiling).
+- Profile before optimizing: Python **3.15+** → `profiling.sampling` (Tachyon); older → `cProfile` (`profiling.tracing` alias on 3.15+), **Pyinstrument**, or Linux **`perf`**. Modes/outputs: [reference.md](reference.md#profiling).
+- Do not read `__dict__`, `vars()`, `'x' in obj.__dict__`, or `copy.copy(instance)` on hot-path objects (3.11+ permanently deopts attribute access). Details: [reference.md](reference.md#attribute-access).
 - **`__slots__`**, PyO3, Cython, concurrency rewrites: see [reference.md](reference.md) — require evidence, not speculation.
 
 ## Observability
@@ -83,6 +88,7 @@ Apply this section **after profiling or a known hot path** — not by default on
 - Use **Loguru** only when the project already does; otherwise stdlib `logging`. Details: [reference.md](reference.md#observability-loguru).
 - Reusable libraries: `logging.getLogger(__name__)` — do **not** reconfigure or hijack the root logger.
 - Do not pre-format with f-strings or `.format()`; pass args so interpolation is lazy: `logging.info("User %s", user_id)`.
+- High-frequency logging: if stdlib logger lock contention is **measured**, use per-thread buffers + a background writer. Do not add `rapidlog` unprompted.
 
 ## Serialization
 
@@ -99,6 +105,14 @@ Apply this section **after profiling or a known hot path** — not by default on
 - Optional: companion `.md` per module for architectural memory (when the project adopts it).
 - Thin CLI: argparse only, delegate to `workflows/` or service layer.
 
+## Language (Python 3.15+)
+
+**Gate:** runtime / `requires-python` / CI is 3.15+. Do not use these on 3.14-only projects.
+
+- Startup: `lazy from module import name` (or `__lazy_modules__` in dual-version libraries). Do not hide imports inside functions solely for startup. Invalid: `lazy from x import *`.
+- Immutable mappings: builtin `frozendict` (not a `dict` subclass; hashable iff values are). Type-check with `Mapping` or `(dict, frozendict)`.
+- Paths: never `os.path.commonprefix()` (character prefix → path traversal). Use `os.path.commonpath()`.
+
 ## Additional detail
 
-See [reference.md](reference.md) for macOS terminal notes, concurrency (3.14+ / free-threading internals), profiling frame pointers, AST transforms, data notebooks, Rust/PyO3, and CLI layout.
+See [reference.md](reference.md) for macOS terminal notes, concurrency (3.14+ / free-threading internals), 3.15 sampling profiler, Django/Hydra/Pointblank gates, packaging, AST transforms, data notebooks, Rust/PyO3, and CLI layout.

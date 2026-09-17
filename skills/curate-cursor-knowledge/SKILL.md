@@ -26,8 +26,8 @@ Use when the user provides **concentrated input** to preserve across projects.
 
 | Content type | Primary home | Secondary |
 |--------------|--------------|-----------|
-| SOLID, boundaries, concurrency *choice*, inheritance tests, sagas, durable workflows, retry bounds, diagrams, SSE/morphing | `system-architecture` | `python` (ABC/MRO) |
-| Python perf, typing, SQLite, tooling, serialization, logging, mocking, CPython internals, ABC/`super()`/`__mro__` | `python` / `reference.md` | — |
+| SOLID, boundaries, concurrency *choice*, inheritance tests, sagas, durable workflows, retry bounds, diagrams, SSE/morphing, plugin REST probes, WSGI/ASGI split | `system-architecture` | `python` (ABC/MRO) |
+| Python perf, typing, SQLite, tooling, serialization, logging, mocking, CPython internals, ABC/`super()`/`__mro__`, 3.15 language/profiler | `python` / `reference.md` | — |
 | Review checks, severity format | `code-review` | link to `python` |
 | How to implement, AI collaboration, integration tests, forensic debug, AX | `developer-workflow` | — |
 | User-facing reply shape (action-first, numbered steps, no preamble) | `developer-workflow` Output style | role Output sections (order only; never a separate skill) |

@@ -2,9 +2,10 @@
 name: system-architecture
 description: >-
   System design guidance: SOLID, inheritance vs composition (reversibility/LSP),
-  Polylith monorepos, sagas and durable workflows, realtime/SSE, LLM fleet
-  boundaries, and cross-language integration. Use when designing modules,
-  services, monorepos, or when the brain agent is active.
+  Polylith monorepos, sagas and durable workflows, plugin REST contracts,
+  realtime/SSE, process topology (WSGI vs ASGI), LLM fleet boundaries, and
+  cross-language integration. Use when designing modules, services, monorepos,
+  or when the brain agent is active.
 ---
 
 # System Architecture
@@ -48,6 +49,7 @@ Delivery wrapping: **developer-workflow** Output style. Thinking order stays the
 - **Reversibility test**: if both "A is a B" and "B is an A" can be argued, inheritance is invalid — compose instead.
 - **LSP**: if a subtype must ignore, no-op, or disable a base method, the hierarchy is wrong.
 - **OCP via ABCs/protocols**: ABCs for formal implementation contracts; Protocols when structural typing is enough. Python MRO / `super()`: **`python`**.
+- **Registry over if/elif**: decorator `@register`, a `Registry` with duplicate-key errors, or `__init_subclass__` auto-registration — **`python`**. Do not grow a central dispatch chain.
 - Repository/data layer isolated from business rules
 - Thin entry points delegating to workflows
 - Typed configuration, not ad-hoc dicts
@@ -73,14 +75,38 @@ Record explicitly:
 
 Details for Python: `python/reference.md` concurrency section.
 
+## Async shared state (gated)
+
+When many waiters must observe **every** transition (not only the latest): do not use a single `asyncio.Event` / `Condition` (waiters miss values under load). Use a per-consumer queue (ValueWatcher). Ordinary "wait until ready" still uses Event.
+
 ## Distributed consistency (gated)
 
 Only when the design **already** spans multiple services or databases — do not introduce microservices in order to apply these.
 
-- **Saga**: prefer an **orchestrated** saga (central state machine / one workflow definition) over choreography unless the project already uses event choreography. Every forward step needs a **compensating transaction**.
+- **Saga**: prefer an **orchestrated** saga (central state machine) over distributed locks and over choreography unless the project already uses event choreography. Every forward step needs an **idempotent compensating transaction**.
 - **Compensations**: must be **idempotent** and run in **reverse dependency order** (children, then parents) so orphaned data is deleted without leaving dangling parents.
 - **Durable workflows**: for long-running processes, use a primitives-based orchestrator (**Temporal** or the project's existing equivalent) that records **event history** so workers can reconstruct state after crashes or partitions. Ordinary request/response paths do not need this.
 - **Reliability**: define recovery **bounds**, not “no failures” — retry policies with backoff and jitter (and a max attempts / DLQ). Do not invent a new orchestrator just to add retries.
+
+## Plugin / extension boundaries (gated)
+
+Only when the design registers **external** plugins or model nodes — do not add a plugin platform to apply this.
+
+- Contract is a **shared schema** (e.g. Pydantic) over HTTP, not in-process dynamic imports or an extra task queue for the handshake.
+- On register: **probe** the contract (examples: `/ready`, `/catalog`) and reject if the payload does not parse.
+- Periodically re-probe (existing scheduler — do not add Celery Beat unprompted). On failure: deactivate; on recovery: re-activate.
+- Create / update / delete go through an ownership/authz check.
+
+## Process topology (gated)
+
+Only when the app mixes short HTTP with long-lived streams (SSE / WebSockets) **and** the deploy is not already a committed single ASGI service.
+
+- Keep request/response on the existing WSGI (or equivalent) workers.
+- Offload long-lived connections to a dedicated **ASGI** process or sidecar. Do not split a working unified ASGI app unprompted. Do not cite unverifiable memory-savings numbers.
+
+## Data access (gated)
+
+On a **measured** slow query path: inspect the query plan and indexes **before** adding async, threads, or extra services. ORM cascades and N+1: **`python/reference.md`** Django section — only if the project uses Django.
 
 ## Realtime / hypermedia (gated)
 
@@ -89,10 +115,11 @@ Only when designing a web UI and the stack is not already a committed SPA.
 - Prefer **SSE** over WebSockets when push is server→client only (plain HTTP). Use WebSockets (or the project's existing channel) when the client must send a bidirectional stream.
 - Prefer **DOM morphing** (preserve focus and scroll) over full subtree swaps.
 - Hypermedia implementation (e.g. Datastar): **`developer-workflow`** — do not introduce unprompted; do not cite unverifiable payload-reduction claims.
+- FastAPI + a separate TypeScript client (already in the stack): **Pydantic is the source of truth**; generate TS from OpenAPI — **`developer-workflow`**. Do not add a TS client to apply this.
 
 ## Observability (gated)
 
-- Production `perf` / eBPF / flame graphs: CPython **frame pointers** — `python/reference.md`. Do not rebuild CPython unless observability is in scope.
+- Production `perf` / eBPF / flame graphs: **`python/reference.md`** profiling (3.15+ ships frame pointers; do not rebuild CPython unless observability on an older custom build is in scope).
 - Logging interpolation and root-logger rules: **`python`** Observability. Specify the standard here; do not restate the API.
 
 ## AI-assisted architecture
@@ -100,6 +127,7 @@ Only when designing a web UI and the stack is not already a committed SPA.
 - Structure quality affects AI output quality — design for clarity before scaling AI use.
 - For developer-side AI workflow (prompts, review passes, AX): see **`developer-workflow`**.
 - Model serving gateway, registry **provenance**, and edge weight manifests: **`python/reference.md`** LLM section — only when the product serves or ships models.
+- Multi-step LLM features: require an **evaluation harness** (correctness, coverage, format), not informal spot checks. Do not mandate Chain-of-Thought as an architecture.
 
 ## Monorepo layout
 

@@ -13,7 +13,7 @@ You are the **dev** agent focused on correct, minimal implementations.
 
 1. Read **`developer-workflow`** and follow it (implementation loop, agentic rules, tests, forensic debugging, gated LLM/frontend/security tooling).
 2. Detect primary language from the repo (`pyproject.toml`, `*.py`, etc.).
-3. For Python projects, also read **`python`** (and `python/reference.md` for perf, free-threading, serialization, and tooling depth).
+3. For Python projects, also read **`python`** (and `python/reference.md` for perf, 3.15 sampling profiler, free-threading, serialization, Django/Hydra gates, and tooling depth).
 4. Read project docs (README, `AGENTS.md`, `.cursor/rules/`, module `.md` files) before changing code.
 5. If the user asked for analysis, suggestions, or review only: do not edit. Answer per **developer-workflow** Output style scope gate. Closer: "say apply it" if they want the change.
 
