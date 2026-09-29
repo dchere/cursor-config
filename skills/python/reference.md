@@ -54,7 +54,7 @@ class AppConfig(BaseModel):
 | **`profiling.sampling`** (Tachyon, 3.15+) | Default sampler: ~zero overhead; `attach` by PID; `--async-aware`, `--native` |
 | **`profiling.tracing`** / **`cProfile`** | Exact call counts (3.15: `cProfile` is an alias; `profile` is deprecated → 3.17) |
 | **Pyinstrument** | Statistical snapshots on **<3.15** or when already in the project |
-| **Linux `perf` / eBPF** | Hardware/kernel events; system-wide. **3.15+** CPython ships frame pointers by default (PEP 831). Do not rebuild CPython on 3.15+ unless a custom build is already the task. |
+| **Linux `perf` / eBPF** | Hardware/kernel events; system-wide. **3.15+** CPython ships frame pointers by default (PEP 831) and exports them via `sysconfig` so extensions inherit the chain. Do not rebuild CPython on 3.15+ unless a custom build is already the task. Opt out with `--without-frame-pointers` only when profiling is out of scope and throughput is measured. |
 
 **3.15 sampling modes** (pick one bottleneck): `--mode wall` (elapsed, default), `cpu` (active CPU), `gil` (lock hold), `exception` (in-flight errors). Outputs: `--flamegraph`, `--heatmap`, `--gecko` (Firefox Profiler), `--collapsed`, `--pstats`. Differential flame graphs only when comparing two recordings of the same workload.
 
@@ -63,6 +63,8 @@ Do not recommend Tachyon on 3.14-or-older runtimes.
 ### Attribute access
 
 Python 3.11+: `vars(obj)`, reading `__dict__`, `'attr' in obj.__dict__`, or `copy.copy(obj)` on an instance deopts specialized `LOAD_ATTR` to a generic lookup (up to ~3× slower after). Do not do this on hot-path objects. Diagnostic dumps belong in one-off scripts, not request loops. Do not add `__slots__` without a profile.
+
+Do not hang metadata on live objects as dynamic attributes (`obj._meta = …`) — collisions, `__slots__`, and `vars()` leaks. For object→data maps that must not keep objects alive, use `WeakKeyDictionary`. `@functools.cache` holds **strong** refs to arguments (leak risk on unbounded unique keys).
 
 ### Algorithmic complexity
 
@@ -101,12 +103,14 @@ Incremental GC reduces stop-the-world pauses — relevant when upgrading runtime
 
 Many projects still run 3.9–3.12 — do not assume 3.14 features.
 
-When **actually targeting free-threaded CPython** (not "we might someday"):
+When **actually targeting free-threaded CPython** (`python3.14t` / 3.15+ GIL-less; not "we might someday"):
 
 - **PyMutex** for short critical sections — do not assume the GIL serializes everything.
-- **Deferred reference counting** changes object lifetime; C extensions that rely on GIL-protected refcounts need an audit before enabling free-threading.
+- **Biased / deferred refcounting** (QSBR): owner-thread fast path; foreign threads use atomics. C extensions that assume GIL-protected refcounts need an audit.
+- C extensions must set `Py_mod_gil = Py_MOD_GIL_NOT_USED`. An un-flagged import **re-enables the GIL process-wide**.
 - **CPython JIT**: Steering Council moratorium pending a formal PEP. Do not enable JIT in production unless the project's runtime already does. Any JIT recommendation must address maintenance, free-threading compatibility, and measurable success metrics.
 - **`asyncio.all_tasks()`**: from a non-loop thread, eager tasks can be missing (creation race). Query from the loop thread, or track tasks you spawn.
+- Do not cite unverifiable core-scaling numbers; measure the actual workload.
 
 **Python 3.16+:** `yield from` inside async generators is valid (PEP 828); `StopAsyncIteration.value` carries the subgenerator result. Do not use on 3.15-or-older.
 
@@ -187,9 +191,10 @@ def find_user(user_id: int) -> User | None:
 
 **Gate:** profile first; Python/NumPy is the default until proven insufficient.
 
-- Extract CPU-critical inner loops to Rust via **PyO3**
-- Fuse passes; benchmark before committing
-- Keep the Python boundary thin
+- Extract CPU-critical inner loops to Rust via **PyO3** (wheels via **Maturin** if the project already uses it)
+- Fuse passes; pass **batches** (frames, full JSON), not per-row micro-calls (Amdahl / FFI cost)
+- Benchmark before committing; keep the Python boundary thin
+- Third integration mode: native process hosting Python sub-interpreters (e.g. Granian) — only if the project already deploys that way
 
 ## Cython (CPU-bound Python)
 
@@ -204,6 +209,20 @@ Not a dependency — patterns that reduce branching in numeric/data code:
 
 - Data-driven conditionals: `count += (age > 17)` instead of nested `if` chains where readable
 - Prefer `sum`, `any`, `all`, and `functools.reduce` over manual accumulation loops
+
+## Testing extras (gated)
+
+Use only if already a dependency or the user asks. Do not add these unprompted.
+
+- **pytest-httpx**: mock `httpx` at transport (no VCR required).
+- **vcrpy**: record once, replay in CI with `record_mode="none"`.
+- **syrupy**: snapshot complex JSON when the project already snapshots.
+- **freezegun**: put `@freeze_time` on the test function (not a distutils-bound wrapper).
+- **pytest-randomly**: shuffle order to catch shared-state leaks.
+
+**Characterization / differential:** before a legacy rewrite, lock current I/O and exceptions. Run old and new behind one adapter; strip dynamic IDs and timestamps before comparing.
+
+**Agent products** (tool tests without calling a model; mocked tool I/O for the loop; scheduled E2E evals): **`developer-workflow`**.
 
 ## CLI architecture
 
@@ -227,6 +246,15 @@ managers/       # cross-cutting orchestration
 - **Registry**: single source of truth. Bind weights to **provenance** (training code version, dataset hash, hyperparameters) so regressions can be traced. Prompt registry for template versions. Use **MLflow** (or the project's existing tracker) — do not introduce MLflow if there is no MLOps stack.
 - **Edge** (gated): when shipping weights to devices, a **manifest** (lockfile for artifacts) should drive targeted **delta** downloads — not full recopies on every update.
 - Multi-step model tasks: an evaluation harness (correctness, coverage, format), not informal spot checks. Prompting tactics (including CoT) are product choices, not architecture requirements.
+- **Per-user OAuth**: never a shared bot token for user actions. Store encrypted user tokens keyed by a server-side id; inject at the tool boundary. The model must not see raw tokens.
+- **Flight recorder** (if the product already traces): span per tool step (`trace_id`, `agent`, `tool`, duration, tokens, cost, status). Do not add TimescaleDB unprompted — use the project's existing store.
+- Provider **fallback** only if the product already has multiple providers. Compact long histories (summarize + trim tool output); persist turns as JSONL if the product already audits sessions. Long-term recall: retrieve from the product's existing vector or SQL store — do not add a vector DB unprompted.
+
+## Linux sandbox (gated)
+
+Only when the task is hardening a Linux agent/tool process **and** the user asks or the project already sandboxes. Do not add Landlock to ordinary apps.
+
+**Landlock LSM** (unprivileged self-restriction): `PR_SET_NO_NEW_PRIVS` first; then create ruleset → add path rules (`O_PATH`) → `landlock_restrict_self`. Rules only narrow. Exec inside the sandbox needs read+execute for the binary, interpreter, and libs (`/usr`, `/lib`). Containers: **`system-architecture`**.
 
 ## Anti-patterns
 
@@ -237,4 +265,5 @@ managers/       # cross-cutting orchestration
 - `pickle` for untrusted or cross-trust data
 - `os.path.commonprefix()` for filesystem/URL containment (use `os.path.commonpath()`)
 - Reading `__dict__` on hot-path instances (3.11+ attribute deopt)
+- Mutable DB/HTTP/cache clients at module global
 - Patching a dependency at definition (`requests.get`) when the SUT imported a local name

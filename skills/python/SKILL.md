@@ -53,6 +53,13 @@ description: >-
 - Prefer explicit optional returns (`User | None`) for expected missing data; reserve exceptions for exceptional paths.
 - Fail fast at startup for missing config or invalid paths when appropriate.
 
+## Scoping
+
+CPython marks a name **local for the whole function** if it is assigned anywhere in that body (`count += 1` counts). Reading it before that assignment (or on a branch that skipped it) is `UnboundLocalError` — the name does not fall back to global.
+- Initialize before use; do not rely on an `if` without an `else`/default.
+- Do not use `global` to mutate module state. Take args, return results.
+- `__init__` must not do I/O or network. Side effects belong in explicit setup methods.
+
 ## Testing
 
 - Use **pytest** when the project has tests.
@@ -63,6 +70,7 @@ description: >-
 - Spies: `unittest.mock.patch.object(..., wraps=real, autospec=True)` when the real function must run and you only need call/return records.
 - **Hypothesis** only if the project already uses it or the user asks — do not add property-based tests unprompted. Parsers/serializers: prefer Hypothesis when it is already a dependency.
 - Async tests: `AsyncMock` for coroutines; session-scoped async fixtures need a matching event-loop scope (`loop_scope="session"`) to avoid "Event loop is closed" / `ScopeMismatch`.
+- **Legacy refactor:** write characterization tests of current behavior (including errors) **before** changing logic. Compare old vs new through one adapter; strip dynamic IDs/timestamps before asserting. Details: [reference.md](reference.md#testing-extras).
 - **E2E browser tests**: use **Playwright** only when the project already does; its codegen can bootstrap scripts — do not introduce Playwright without being asked.
 
 ## Dependencies and tooling
@@ -77,7 +85,7 @@ description: >-
 
 Apply this section **after profiling or a known hot path** — not by default on every change.
 
-- Prefer **O(1)** membership via `set` / `dict` over list scans in hot loops.
+- Prefer **O(1)** membership via `set` / `dict` over list scans in hot loops. Prefer set algebra (`&`, `|`) over nested membership `if`s when matching collections.
 - Profile before optimizing: Python **3.15+** → `profiling.sampling` (Tachyon); older → `cProfile` (`profiling.tracing` alias on 3.15+), **Pyinstrument**, or Linux **`perf`**. Modes/outputs: [reference.md](reference.md#profiling).
 - Do not read `__dict__`, `vars()`, `'x' in obj.__dict__`, or `copy.copy(instance)` on hot-path objects (3.11+ permanently deopts attribute access). Details: [reference.md](reference.md#attribute-access).
 - **`__slots__`**, PyO3, Cython, concurrency rewrites: see [reference.md](reference.md) — require evidence, not speculation.
@@ -104,6 +112,7 @@ Apply this section **after profiling or a known hot path** — not by default on
 - Keep modules under ~300 lines; split by responsibility.
 - Optional: companion `.md` per module for architectural memory (when the project adopts it).
 - Thin CLI: argparse only, delegate to `workflows/` or service layer.
+- Do not keep mutable clients (DB pools, HTTP sessions, caches) at **module global** — they leak across requests and tests under concurrency. Put them on `app.state`, FastAPI `Depends()`, or a scoped fixture.
 
 ## Language (Python 3.15+)
 
@@ -112,7 +121,8 @@ Apply this section **after profiling or a known hot path** — not by default on
 - Startup: `lazy from module import name` (or `__lazy_modules__` in dual-version libraries). Do not hide imports inside functions solely for startup. Invalid: `lazy from x import *`.
 - Immutable mappings: builtin `frozendict` (not a `dict` subclass; hashable iff values are). Type-check with `Mapping` or `(dict, frozendict)`.
 - Paths: never `os.path.commonprefix()` (character prefix → path traversal). Use `os.path.commonpath()`.
+- Placeholders: builtin `sentinel("MISSING")` instead of a bare `object()` sentinel (PEP 661).
 
 ## Additional detail
 
-See [reference.md](reference.md) for macOS terminal notes, concurrency (3.14+ / free-threading internals), 3.15 sampling profiler, Django/Hydra/Pointblank gates, packaging, AST transforms, data notebooks, Rust/PyO3, and CLI layout.
+See [reference.md](reference.md) for macOS terminal notes, concurrency (3.14t / free-threading, `Py_mod_gil`), 3.15 sampling profiler, Landlock, Django/Hydra/Pointblank gates, packaging, AST transforms, data notebooks, Rust/PyO3, and CLI layout.

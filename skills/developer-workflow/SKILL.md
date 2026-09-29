@@ -32,7 +32,7 @@ description: >-
 - Treat AI as a **junior developer**: provide clear goals, constraints, and patterns in prompts.
 - **Clean architecture is AI hygiene**: agents mirror existing code; messy structure gets amplified.
 - **Review generated completions**: treat IDE/model suggestions as untrusted — they may introduce insecure defaults (e.g. `http` instead of `https`). Verify before keeping them.
-- **Stateful agent graphs** (e.g. **LangGraph**): use when building multi-step AI workflows with guardrails — not for ordinary feature coding unless the task is agent design.
+- **Stateful agent graphs** (e.g. **LangGraph**): use when building multi-step AI workflows with guardrails — not for ordinary feature coding unless the task is agent design. Follow the project's SDK (LangGraph `interrupt()` HITL, Anthropic/OpenAI agent SDKs) if already in use; do not add a second orchestrator.
 
 ## Implementation loop
 
@@ -53,6 +53,8 @@ After AI-generated changes: run tests/linters; consider a **cr** agent pass. Do 
 - Integration tests are the highest-leverage check: localized unit tests often pass while the system fails end-to-end from mismatched assumptions at boundaries.
 - When changing a boundary, exercise the real seam as the project already does — do not mock away the thing under test.
 - Language-specific mocking (e.g. patch where the name is used) and **Hypothesis**: see **`python`**. Do not add Hypothesis unprompted.
+- **Legacy rewrite:** characterization tests first; differential compare through one adapter — **`python/reference.md`**.
+- **Agent products:** unit-test tools without an LLM; mock tool I/O to test the loop; E2E evals on a schedule. Do not call paid models from unit tests.
 
 ## Forensic debugging
 
@@ -65,7 +67,14 @@ Live process (Python 3.15+): `python -m profiling.sampling dump --async-aware <p
 Only when the task is building LLM/agent products — not ordinary features.
 
 - Model serving gateway and prompt/model registries: **`python/reference.md`** LLM section (do not duplicate here).
+- **Workflow vs agent:** hardcoded steps with LLM in a slot vs a perceive–reason–act loop until stop. Do not turn a simple pipeline into an autonomous loop.
+- **MCP:** tool docstrings *are* the prompt. CLI tools are cheaper in tokens; MCP schemas cost context and buy validation/audit. Do not add MCP to ordinary apps. Transport: stdio or the project's existing HTTP/SSE.
+- **Tool boundary:** validate and normalize args in code (enums, `.strip()`). Do not rely on the system prompt for security. When the product already screens input, reject malformed or policy-violating prompts with deterministic checks **before** paid API calls.
+- **HITL:** destructive tool calls need an explicit approve step (`interrupt()` or equivalent). Matches Output style safety overrides.
+- **Bounded loops:** cap tool/LLM iterations (`range(max_iterations)`). Return tool exceptions to the model as observations; do not crash the loop.
 - **Agent Experience (AX)**: when building tools for other coding agents, ship `llms.txt`, MCP servers for queryable data, and installable skills. Do not add these to ordinary apps.
+- Session compaction, JSONL audit, per-user OAuth, model fallback: **`python/reference.md`**.
+- **PR-review products** (not Cursor CR): retrieve callers with repo search, not the hunk alone; drop ungrounded findings. Fan-out specialists are **`system-architecture`** Multi-agent products — do **not** change our sequential **cr** / **pipeline**.
 
 ## Frontend (gated)
 
@@ -79,14 +88,18 @@ Mixed short HTTP + SSE/WebSockets: process split is **`system-architecture`** Pr
 
 - Bot / signup-spam / prompt-injection layers (e.g. **Arcjet**): only if the project uses them or the user asks.
 - Keep PII detection **in-process** (e.g. WASM sandbox) so sensitive data does not leave the environment.
+- Linux process sandbox (Landlock): **`python/reference.md`** — only if asked or already used.
 
 ## GitHub Actions (gated)
 
 Only when the change edits `.github/workflows/`:
 
 - Pin third-party actions to a 40-character commit SHA, not a floating tag.
-- If the project already uses **zizmor**, keep it. Do not add zizmor unprompted.
+- If the project already uses **zizmor** or **actionlint**, keep them. Do not add them unprompted.
 - When editing `.github/dependabot.yml`: set an update cooldown (e.g. 7 days). Do not add Dependabot to a repo that lacks it.
+- If the org already has an Actions **allowlist**, do not add off-list actions.
+
+Keep existing SAST/SCA/signing/admission tools (Semgrep, Bandit, Gitleaks, Checkov, Trivy, Cosign, Kyverno, Falco, ZAP). Do not introduce that full matrix unprompted.
 
 ## Output style
 

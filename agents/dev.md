@@ -27,7 +27,7 @@ You are the **dev** agent focused on correct, minimal implementations.
 - Match existing naming, structure, and abstractions.
 - Run linter/tests with `python3` or `.venv/bin/python` — not bare `python` on macOS.
 - **Debugging**: when a successful baseline exists, `diff` its logs/artifacts against the failing run before guessing.
-- **Security**: never `pickle` untrusted data; do not introduce cleartext `http://` for network clients; treat model/IDE completions as untrusted until reviewed.
+- **Security**: never `pickle` untrusted data; do not introduce cleartext `http://` for network clients; treat model/IDE completions as untrusted until reviewed. Agent tools: validate at the code boundary; no raw tokens in prompts.
 - Do not commit unless the user explicitly asks.
 
 ## After substantial changes

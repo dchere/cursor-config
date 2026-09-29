@@ -45,7 +45,14 @@ Flag from the diff when visible:
 - Newly added third-party GitHub Action `uses:` without a 40-character commit SHA (**Critical**); floating tags on workflows the PR already touches (**Suggestion**)
 - `.github/dependabot.yml` added or edited with no update cooldown (**Suggestion** — e.g. 7 days; do not add Dependabot to a repo that lacks it)
 - Unvalidated external input reaching business logic
+- `GET` (or other safe-method) handlers that mutate state (**Critical** — CSRF via image/link; mutations belong on POST/PUT/PATCH/DELETE)
 - OAuth authorization-code flow missing PKCE (`code_challenge`) or CSRF `state`, or long-lived refresh tokens stored in the browser / localStorage (**Critical** — only if the PR implements OAuth)
+- Session-cookie auth without a CSRF token or `SameSite=Lax`/`Strict` (**Suggestion** — only if the PR implements cookie sessions)
+- Assignment to a name later in the same function after an earlier read, or use after an `if` assignment with no `else`/default (**Suggestion** — `UnboundLocalError`; **`python`** Scoping)
+- `__init__` that performs I/O or network (**Suggestion** — **`python`** Scoping)
+- `global` used to mutate module state (**Suggestion** — **`python`** Scoping)
+- `@functools.cache` / `lru_cache` on unbounded unique object keys (**Suggestion** — strong refs; **`python/reference.md`**)
+- `INSERT` then publish to a queue as two uncorrelated writes (**Suggestion** — only if the PR implements that flow; **`system-architecture`** outbox)
 - Service worker / Web Push added without `worker-src` / `connect-src` in CSP (**Suggestion**)
 - Attacker-controlled strings passed to `__raw_json__`, `RawJSON`, or concatenated into JSON (**Critical** — bypasses structural escaping)
 - `vars(obj)`, `obj.__dict__`, `'x' in obj.__dict__`, or `copy.copy(obj)` on instances in a hot path (**Suggestion** — 3.11+ attribute deopt; do not demand `__slots__` without a profile)
@@ -65,6 +72,10 @@ Flag from the diff when visible:
 - Multi-step distributed write without a compensating/rollback path, or compensations that are not idempotent / not reverse-order (**Suggestion** — only if the PR is implementing that flow)
 - Hardcoded production prompts scattered in call sites on an LLM-serving change (**Suggestion** — prefer config/registry; see `python/reference.md`)
 - New coding-agent / developer-tool surface with no `llms.txt` or MCP affordance (**Nice to have** — AX only)
+- Mutable DB/HTTP/cache clients at module global on a request path (**Suggestion**)
+- Agent tool that logs or prompts raw OAuth/API tokens, or a shared bot token for per-user actions (**Critical** — only if the PR implements agent tools)
+- Agent tool whose only security is a system-prompt instruction (no code validation at the boundary) (**Suggestion** — agent-product PRs)
+- New C extension on a free-threaded runtime without `Py_MOD_GIL_NOT_USED` (**Suggestion** — GIL re-enabled process-wide)
 
 Do **not** require:
 
@@ -73,7 +84,8 @@ Do **not** require:
 - Migrating the repo to **uv**, **Datastar**, **Marimo**, **Temporal**, **Arcjet**, **Hydra**, **Hypothesis**, or an LLM **Gateway** unless the PR already targets that stack
 - `profiling.sampling`, `lazy import`, or `frozendict` unless `requires-python` / CI already includes 3.15+
 - Frozen display syntax (`f{…}`), `from module export`, `__json__` protocols, zizmor, rapidlog, turbohtml, django-crawl, or replacing Celery with Django Tasks
-- Spawning ephemeral reviewer sub-agents or running an AST pipeline as a merge gate
+- Spawning ephemeral reviewer sub-agents, specialist fan-out, confidence scores, a HITL queue, or an AST pipeline as a merge gate (Cursor CR stays sequential)
+- Landlock, Cosign, Kyverno, Falco, OTel, Semgrep, Trivy, Syft, actionlint, or the rest of a DevSecOps matrix unless the PR already uses that tool
 
 When a PR claims performance improvements, expect profiler output (`profiling.sampling` on 3.15+, else `cProfile` / Pyinstrument, or benchmarks) — not hand-wavy Big-O claims alone. Optional scaling tests on critical paths are a **Suggestion**, not a merge blocker.
 
@@ -84,6 +96,11 @@ Only when the PR’s domain matches; keep severity at **Suggestion** or **Nice t
 | If the PR … | Suggest (gated) | Canonical |
 |-------------|-----------------|-----------|
 | Adds long-running / multi-step distributed work | Compensating steps; durable event history if already orchestrating | `system-architecture` |
+| Dual-writes a DB row and a queue message | Same-transaction outbox; `SKIP LOCKED` if multiple relays; idempotent consumer | `system-architecture` |
+| Writes time-series into existing Timescale | Hypertables + time-bounded queries; continuous aggregates | `system-architecture` |
+| Writes many Cypher rows into existing Neo4j | `UNWIND` batch, not one statement per row | `system-architecture` |
+| Surfaces SCA/CVE counts | Reachability before treating as Critical | `code-review` |
+| Adds cookie-session auth | CSRF token + `SameSite`; GET stays read-only | `code-review` |
 | Serves / routes LLM models | Gateway + prompt/model registry instead of frozen paths / hardcoded prompts | `python/reference.md` |
 | Builds tools for other coding agents | `llms.txt`, MCP, installable skills (AX) | `developer-workflow` |
 | Adds bot/signup/PII protection | In-process / WASM-local analysis; project security SDK if already used | `developer-workflow` |
@@ -100,6 +117,9 @@ Only when the PR’s domain matches; keep severity at **Suggestion** or **Nice t
 | Registers external plugins / model nodes | Shared HTTP schema; probe on register; reject unparseable payloads | `system-architecture` |
 | “Fixes” a slow query by adding async/threads | Query plan and indexes first | `system-architecture` |
 | Adds SSE/WebSockets to a WSGI-only deploy | ASGI sidecar — only if not already unified ASGI | `system-architecture` |
+| Adds agent tools that call user APIs | Per-user OAuth; no shared bot token; no tokens in the prompt | `python/reference.md` |
+| Adds a Dockerfile / K8s manifest | Non-root, read-only root, cap-drop if the project already hardens this way | `system-architecture` |
+| Rewrites legacy behavior | Characterization tests before the swap | `python` |
 
 ## AI-generated and bugfix lenses
 

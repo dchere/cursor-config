@@ -26,12 +26,14 @@ Use when the user provides **concentrated input** to preserve across projects.
 
 | Content type | Primary home | Secondary |
 |--------------|--------------|-----------|
-| SOLID, boundaries, concurrency *choice*, inheritance tests, sagas, durable workflows, retry bounds, diagrams, SSE/morphing, plugin REST probes, WSGI/ASGI split | `system-architecture` | `python` (ABC/MRO) |
-| Python perf, typing, SQLite, tooling, serialization, logging, mocking, CPython internals, ABC/`super()`/`__mro__`, 3.15 language/profiler | `python` / `reference.md` | — |
-| Review checks, severity format | `code-review` | link to `python` |
+| SOLID, boundaries, concurrency *choice*, inheritance tests, sagas, outbox, observers, Builder, durable workflows, retry bounds, diagrams, SSE/morphing, plugin REST probes, WSGI/ASGI split, Timescale/Neo4j batching | `system-architecture` | `python` (ABC/MRO) |
+| Python perf, typing, SQLite, tooling, serialization, logging, mocking, CPython internals (scope/`UnboundLocalError`, `WeakKeyDictionary`), ABC/`super()`/`__mro__`, 3.15 language/profiler | `python` / `reference.md` | — |
+| Review checks, severity format, CSRF GET-must-be-safe, SCA reachability | `code-review` | link to `python` |
 | How to implement, AI collaboration, integration tests, forensic debug, AX | `developer-workflow` | — |
 | User-facing reply shape (action-first, numbered steps, no preamble) | `developer-workflow` Output style | role Output sections (order only; never a separate skill) |
 | LLM serving gateway, registry provenance, edge manifests | `python/reference.md` | `developer-workflow` (pointer only) |
+| Agent-product MCP, workflow-vs-loop, tool-boundary security, HITL, bounded agent loops | `developer-workflow` | `python/reference.md` (OAuth, flight recorder) |
+| Landlock / OS sandbox | `python/reference.md` | `system-architecture` (containers) |
 | Agent behavior, skill invocation | `agents/dev`, `cr`, `brain` | — |
 
 Create a new skill only when content is a new domain (e.g. `java/`), not a duplicate topic.
@@ -55,7 +57,7 @@ Add **when** guards for:
 - Rust / PyO3
 - Python 3.14 concurrency features / free-threading internals
 - CPython rebuilds (frame pointers, JIT)
-- New tooling (uv, Loguru, Datastar, Marimo, Great Tables, Arcjet, MLflow, Temporal, msgspec) — always: *"if project already uses X, follow X; do not introduce unprompted"*
+- New tooling (uv, Loguru, Datastar, Marimo, Great Tables, Arcjet, MLflow, Temporal, msgspec, OTel, Landlock, Cosign, Timescale, Neo4j) — always: *"if project already uses X, follow X; do not introduce unprompted"*
 
 ### 3c. Portability (required)
 

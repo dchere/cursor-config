@@ -18,11 +18,21 @@ description: >-
 
 ## Workflow
 
-1. Restate requirements and constraints (scale, team, latency, offline, etc.).
+1. Restate requirements and constraints (statefulness, throughput, security boundaries, concurrency, scale).
 2. Map current or proposed components and data flow.
 3. Identify boundaries (what owns what; what must not leak).
-4. Propose 1–2 viable options with pros/cons.
-5. Recommend one option with rationale.
+4. Pick patterns from the table below only when the trigger matches — do not apply the whole catalog.
+5. Propose 1–2 viable options with pros/cons (memory, latency, complexity, failure modes).
+6. Recommend one option with rationale; verify isolation, dual-write, retry bounds, and observability against what the project already runs.
+
+| Trigger | Pattern | Home |
+|---------|---------|------|
+| Dual-write DB + queue | Transactional outbox | this skill |
+| Collateral side effects on one state change | Observer / EDA (events = facts, commands = requests) | this skill |
+| Multi-step construction + validation → immutable result | Builder (do not wrap every dataclass) | this skill |
+| Untrusted process / no-root FS restrict | Landlock | `python/reference.md` |
+| CPU-bound threads on 3.14t+ | Free-threaded CPython | `python/reference.md` |
+| Proven CPU inner loop, batched payloads | PyO3 / Cython (no per-row FFI) | `python/reference.md` |
 
 ## Output structure
 
@@ -32,7 +42,7 @@ Delivery wrapping: **developer-workflow** Output style. Thinking order stays the
 2. **Options** — 2–4 with one-line trade-offs
 3. **Context** — problem, constraints, assumptions
 4. **Boundaries** — modules/services, interfaces, data ownership
-5. **Risks** — migration path if refactoring
+5. **Risks** — failure mode → mitigation; migration path if refactoring
 6. **Documentation** — exact companion `.md` files to update when behavior or boundaries change (from project rules if present)
 
 ## Diagrams
@@ -53,6 +63,8 @@ Delivery wrapping: **developer-workflow** Output style. Thinking order stays the
 - Repository/data layer isolated from business rules
 - Thin entry points delegating to workflows
 - Typed configuration, not ad-hoc dicts
+- No I/O in constructors — **`python`** Scoping
+- **Builder** (gated): only when construction is multi-step with a terminal `build()` that validates and returns an immutable object. Factory methods may hand out pre-filled builders. Do not introduce a builder for a simple dataclass.
 
 ## SOLID (quick reference)
 
@@ -87,6 +99,8 @@ Only when the design **already** spans multiple services or databases — do not
 - **Compensations**: must be **idempotent** and run in **reverse dependency order** (children, then parents) so orphaned data is deleted without leaving dangling parents.
 - **Durable workflows**: for long-running processes, use a primitives-based orchestrator (**Temporal** or the project's existing equivalent) that records **event history** so workers can reconstruct state after crashes or partitions. Ordinary request/response paths do not need this.
 - **Reliability**: define recovery **bounds**, not “no failures” — retry policies with backoff and jitter (and a max attempts / DLQ). Do not invent a new orchestrator just to add retries.
+- **Outbox** (same DB, queue later): do not `INSERT` then publish in two uncorrelated writes. Write the event row in the **same transaction** as the business row; a relay worker publishes and marks sent. Multiple relays: `SELECT … FOR UPDATE SKIP LOCKED`. Consumers must be **idempotent** (unique constraint or equivalent).
+- **Observers**: events are facts ("happened"); commands are requests ("do this"). One domain event, many handlers; each handler in its own `try/except` so one failure does not skip the rest. Publishers stay unaware of subscribers.
 
 ## Plugin / extension boundaries (gated)
 
@@ -108,6 +122,9 @@ Only when the app mixes short HTTP with long-lived streams (SSE / WebSockets) **
 
 On a **measured** slow query path: inspect the query plan and indexes **before** adding async, threads, or extra services. ORM cascades and N+1: **`python/reference.md`** Django section — only if the project uses Django.
 
+- **Timescale** (only if already in the stack): hypertables + time-bounded queries so chunks can be excluded; continuous aggregates over trigger-maintained full-table summaries. Do not add Timescale unprompted.
+- **Neo4j / Cypher** (only if already in the stack): batch writes with `UNWIND`, not one statement per row. Do not add Neo4j unprompted.
+
 ## Realtime / hypermedia (gated)
 
 Only when designing a web UI and the stack is not already a committed SPA.
@@ -121,6 +138,22 @@ Only when designing a web UI and the stack is not already a committed SPA.
 
 - Production `perf` / eBPF / flame graphs: **`python/reference.md`** profiling (3.15+ ships frame pointers; do not rebuild CPython unless observability on an older custom build is in scope).
 - Logging interpolation and root-logger rules: **`python`** Observability. Specify the standard here; do not restate the API.
+- Traces / metrics / logs: use the project's existing OpenTelemetry (or equivalent) pipeline. Do not add OTel, Tempo, or Jaeger unprompted.
+
+## Multi-agent products (gated)
+
+Only when the *product* is a multi-agent system — not how Cursor CR reviews PRs (stay sequential; do not spawn extra reviewer agents).
+
+1. **Orchestrator + specialists** — manager delegates; isolates specialists. Our **pipeline** agent is this pattern (brain → dev → cr).
+2. **Sequential refine** — planner → implementer → reviewer.
+3. **Fan-out / fan-in** — independent specialists then merge. Product reviews only; not our CR.
+4. **Debate** — opposing views then a synthesizer. Idea-stage: **Dima**.
+
+## Container deploy (gated)
+
+Only when the change is a Dockerfile / Kubernetes / compose deploy.
+
+- Read-only root filesystem, drop unused capabilities, non-root user — if the project already containerizes. Do not invent a cluster to apply this.
 
 ## AI-assisted architecture
 
@@ -128,6 +161,7 @@ Only when designing a web UI and the stack is not already a committed SPA.
 - For developer-side AI workflow (prompts, review passes, AX): see **`developer-workflow`**.
 - Model serving gateway, registry **provenance**, and edge weight manifests: **`python/reference.md`** LLM section — only when the product serves or ships models.
 - Multi-step LLM features: require an **evaluation harness** (correctness, coverage, format), not informal spot checks. Do not mandate Chain-of-Thought as an architecture.
+- Per-user identity for agent tools: **`python/reference.md`**. Do not use a shared bot token for user-scoped actions.
 
 ## Monorepo layout
 
@@ -138,6 +172,7 @@ When managing a large Python monorepo, consider **Polylith**: reusable **bricks*
 **Gate:** profile Python first; consider Rust/PyO3 or Cython only for proven CPU bottlenecks.
 
 - Thin language boundary; explicit error/ownership contracts
+- Batch across the FFI (full buffers / JSON), not per-row micro-calls — **`python/reference.md`**
 - Rust mindset: ownership at boundaries; `Result`-like returns (`User | None`) for expected failures
 - See `python/reference.md` for PyO3, Cython, and profiling gates
 
