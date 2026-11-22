@@ -18,6 +18,84 @@ description: >-
 - **Tests**: add only when they cover meaningful behavior; skip trivial assertions.
 - **Cleanup**: remove temporary scripts (`fix_*.py`, scaffolding) when done.
 
+## From pain to code
+
+Canonical path when the user starts from a pain, idea, or feature. **pipeline** runs it. Each rule below is stated once. The order points here.
+
+**ADR.** One record per decision. Plain language. Status is `proposed`, then `accepted`. A `proposed` ADR that is replaced or refused is deleted. Accepted and superseded records stay. No class names, file paths, or libraries. Not a plan.
+
+Parts:
+
+- **Problem** and **Intent**
+- **Decision** and **Consequences** — the alternative that lost, why this one is better, and what this locks, including what it rules out
+- **Scenarios** — what the person does, each with an id (`S1`, `S2`, …)
+- **Behavior** — per scenario id, an edge matrix. Columns: Case, Given, When, Then. One of each per row. Required rows: the success path, and the failure that matters. Add a row only when empty, a conflict, or a second try would change the Then. No other rows. Two rows with the same Then count as one.
+
+**Where it lives.** The project's existing ADR directory, or `docs/adr/NNNN-title.md` with the next free number. The module note links to each ADR that still has an accepted scenario. It does not link a proposed or fully superseded ADR, and it does not copy the scenarios.
+
+**Supersede.** A behavior change that contradicts an accepted scenario is a new ADR. It lists only the scenarios that change: `Supersedes: ADR-4 S3`. On `yes`, mark that scenario `superseded by ADR-9 S3`. Leave its text. Leave the other scenarios accepted. When every scenario in the old ADR is superseded, or the new ADR names the whole record (`Supersedes: ADR-N`), set the old record to `superseded by ADR-M`. Do not edit the old problem, decision, or scenario text.
+
+**Use-case tests.** Integration tests from an **accepted** ADR. One test per matrix row. Rows that share a Then may share one test, and that still counts as one row. Each test names the ADR id, the scenario id, and the case. Every accepted row has one test. The **tester** writes them, runs them, and shows the command and the red output before Dev. A green run stops the pipeline. The tester removes tests that name only a superseded scenario. On `CHANGE THE TESTS`, the tester rewrites the named assertion to the quoted Then. **Dev** does not add or edit scenario tests. A test that also names a scenario that remains, and whose assertion would have to change, stops for the user.
+
+**Runs.** After each Dev pass, the pipeline runs that same command and shows the output. A red run stops before CR. The close-out has one line per accepted scenario: scenario id, test name, task id, pass or fail. On an already-specified bug, `pass` requires that the red run and the green run are the reported symptom. Any other green run is `partial`.
+
+**Tasks.** After the test check says `READY`, **brain** lists tasks. Each task has an id (`T1`), the scenario ids it satisfies, the files it may change (1–3), and a done check. The done check is a Then from an accepted row, or the removal of a user-visible outcome that only a scenario this ADR superseded named. When this ADR supersedes a scenario, a done check removes that outcome. The ADR and the scenario tests are never in the file list. **Dev** changes only the files on the current task. After every Dev pass, `git diff --name-only`. An ADR or a scenario test in that diff stops the run.
+
+**Bugs.** A defect is not a new feature. **Critic** classifies it before Dima. `ALREADY SPECIFIED`: no new ADR. The tester adds a test only when none would fail, and that test is the reported symptom. Then tasks and Dev. Close-out: **Runs**. `CHANGES A SCENARIO`: stop. The user confirms, and a new ADR supersedes that scenario. "The old scenario stands" switches to `ALREADY SPECIFIED`. `NOT SPECIFIED`: stop. The user decides whether a new ADR should exist.
+
+**Who may change what.**
+
+| Role | May change | May not change |
+|------|------------|----------------|
+| Dima | nothing in the repo | ADR, tests, code, plan |
+| Brain, outcome only | a `proposed` ADR; on `yes`, status `accepted`; a superseded scenario's status line; delete a replaced or refused `proposed` ADR | old scenario text, tests, code, the plan |
+| Critic | nothing | files |
+| Tester | scenario tests for an accepted scenario; remove tests that name only a superseded scenario; an assertion named by `CHANGE THE TESTS` | production code, the ADR, assertions on scenarios that remain |
+| Brain, plan | the task list, and module-note links to ADRs that still have an accepted scenario | the ADR body, scenario tests |
+| Dev | files named on the current task | the ADR, scenario tests, any other file |
+| CR | nothing | files |
+
+**Critic checks.** Read the module note, principles already written in `AGENTS.md`, accepted ADRs, and use-case tests. Do not tour the repo. Do not create a constitution file. Verdicts: `READY FOR YOU` or `CHANGE THE ADR`. At most 3 blocking items, each with a replacement. An untestable Then's replacement includes the assertion a test would make.
+
+- Missing part, scenario without an id, or a row without a Given, a When, and a Then.
+- A matrix missing the success path or the failure that matters. Empty, a conflict, or a second try would change the Then and has no row. A row beyond those.
+- Two ways to read a Then, or a Then an integration test cannot fail.
+- Contradiction with an accepted scenario, a use-case test, the module note, or a principle already written in `AGENTS.md` or that note. Supersede that scenario when behavior changes. Do not edit its text.
+- Class names, file paths, or libraries. Scenarios copied into a module note. A module note that links a proposed or fully superseded ADR.
+- Decision or Consequences with no alternative that lost, and no reason this one is better.
+
+**Plan check.** Verdicts: `READY`, `CHANGE THE PLAN`. Name the task id, the choice, or the scenario id, and quote what it breaks. Do not propose an implementation.
+
+- A done check that is not an accepted Then, and is not the removal of an outcome only a superseded scenario named.
+- A plan choice that Consequences, an accepted scenario, or a written principle rules out.
+- This ADR supersedes a scenario, and no done check removes the outcome only that scenario named.
+
+**Test check.** After the red run. Verdicts: `READY`, `CHANGE THE TESTS`. Compare each assertion the tester added with its Then. A weaker or different assertion is `CHANGE THE TESTS`. Name the test and quote the Then. Do not propose an implementation.
+
+**Retries.** `CHANGE THE TESTS` and `CHANGE THE PLAN` return to the writer once. The second one stops for the user. Show what the critic named.
+
+Bug-check verdicts, and no other: `ALREADY SPECIFIED`, `CHANGES A SCENARIO`, `NOT SPECIFIED`.
+
+**Review stops.** Do not propose an implementation. The user accepts a new ADR, says the code must match the existing scenarios, or says `remove it`.
+
+- **Scenario gap:** a finding wants behavior no scenario states.
+- **Extra behavior:** a user-visible outcome no scenario names, an outcome only a superseded scenario named, or something Consequences rules out, even when the scenario tests pass. A log line, or an error type the failure row already implies, is not extra behavior.
+
+**Order.**
+
+1. **Dima** until the user names the solution. One question per turn. No plan, no code, no ADR. A bug uses **Bugs** instead.
+2. **Brain**, outcome only, writes the ADR as `proposed`. No plan.
+3. **Critic checks.** Stop for the user.
+4. `yes`, `approve`, or `adr is good` accepts it per **Supersede**. A replacement repeats 2–3 and deletes the previous `proposed` ADR. A refusal deletes it and returns to Dima.
+5. **Tester**, per **Use-case tests**, including the red run.
+6. **Test check.** **Retries.**
+7. **Brain** writes **Tasks**.
+8. **Plan check.** **Retries.** `plan only` and `brain only` stop after `READY`.
+9. **Dev**, one task at a time. Then **Runs**.
+10. **CR**, per **Review stops**.
+
+`skip dialog` and `solution chosen` skip step 1. The ADR and the critic still run. A review can start at step 10. `skip plan`, `implement only`, and a one-file fix may change code only when accepted scenarios and their assertions stay as they are. A contradiction with an accepted scenario, or a new user-visible outcome, uses **Bugs**. Those shortcuts still may not edit an ADR or a scenario test.
+
 ## Before coding
 
 1. Read project docs (README, AGENTS.md, module `.md` files if the project uses them).
@@ -107,7 +185,7 @@ Canonical user-facing delivery for every agent (always on). Role skills keep the
 
 Shape, not diagnosis. Working memory is small; starting is the hard step; vague time ("a bit") does not register; buried wins do not register.
 
-**Scope gate — apply before every other bullet.** If the user asked for analysis, review, suggestions, explanation, or discussion only (and did not ask to implement, apply, fix, or edit): do not change files, do not run the implementation loop, do not hand the reader a patch to paste. The answer is the finding. First line = recommendation, verdict, or top finding. Closer = one decision ("pick B" / "say apply it"), not an edit command. Autonomy below does not apply to this case. Invoking the **pipeline** agent counts as asking to implement unless the user also used an opt-out keyword (`plan only`, `analysis only`, `review only`, …).
+**Scope gate — apply before every other bullet.** If the user asked for analysis, review, suggestions, explanation, or discussion only (and did not ask to implement, apply, fix, or edit): do not change files, do not run the implementation loop, do not hand the reader a patch to paste. The answer is the finding. First line = recommendation, verdict, or top finding. Closer = one decision ("pick B" / "say apply it"), not an edit command. Autonomy below does not apply to this case. Invoking the **pipeline** agent starts **Order**. Dev waits until that order says so. `analysis only` and `review only` still skip Dev.
 
 - **First line = the answer the reader can act on.** Implement/fix: a command, path, or snippet. Analysis/review/discussion: the recommendation, verdict, or top finding — not "open the file and replace…".
 - **Number multi-step work.** One bounded action per step; no step contains "and then" twice. Fewest steps that still work. Cap lists at 5; split must vs later if longer. Analysis: numbered trade-offs or findings, not an implementation checklist unless they asked how to apply it.

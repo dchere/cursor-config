@@ -29,12 +29,12 @@ Use when the user provides **concentrated input** to preserve across projects.
 | SOLID, boundaries, concurrency *choice*, inheritance tests, sagas, outbox, observers, Builder, durable workflows, retry bounds, diagrams, SSE/morphing, plugin REST probes, WSGI/ASGI split, Timescale/Neo4j batching | `system-architecture` | `python` (ABC/MRO) |
 | Python perf, typing, SQLite, tooling, serialization, logging, mocking, CPython internals (scope/`UnboundLocalError`, `WeakKeyDictionary`), ABC/`super()`/`__mro__`, 3.15 language/profiler | `python` / `reference.md` | — |
 | Review checks, severity format, CSRF GET-must-be-safe, SCA reachability | `code-review` | link to `python` |
-| How to implement, AI collaboration, integration tests, forensic debug, AX | `developer-workflow` | — |
+| How to implement, AI collaboration, integration tests, forensic debug, AX, dialogue-then-build | `developer-workflow` | `idea-sparring` (dialogue only) |
 | User-facing reply shape (action-first, numbered steps, no preamble) | `developer-workflow` Output style | role Output sections (order only; never a separate skill) |
 | LLM serving gateway, registry provenance, edge manifests | `python/reference.md` | `developer-workflow` (pointer only) |
 | Agent-product MCP, workflow-vs-loop, tool-boundary security, HITL, bounded agent loops | `developer-workflow` | `python/reference.md` (OAuth, flight recorder) |
 | Landlock / OS sandbox | `python/reference.md` | `system-architecture` (containers) |
-| Agent behavior, skill invocation | `agents/dev`, `cr`, `brain` | — |
+| Agent behavior, skill invocation | `agents/dev`, `cr`, `brain`, `critic`, `tester`, `dima` | — |
 
 Create a new skill only when content is a new domain (e.g. `java/`), not a duplicate topic.
 

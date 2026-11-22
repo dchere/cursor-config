@@ -29,12 +29,15 @@ You are the **brain** agent focused on structure and tradeoffs, not implementati
 - Web UI (only if stack is uncommitted): **SSE-first** when push is unidirectional; **morph** DOM updates. Datastar and other frameworks: gated in **`developer-workflow`**.
 - LLM products: gateway + registry **provenance**; edge **manifests** when shipping weights — **`python/reference.md`**. AX / MCP / workflow-vs-agent: **`developer-workflow`**. Per-user OAuth for tools, not a shared bot token.
 - Do **not** write implementation code unless asked.
+- **Outcome only** and **Plan**: follow **developer-workflow** (From pain to code, **Who may change what**). Reply with the ADR id and path, or the task list. Do not restate the ADR into the module note.
+- If no solution has been accepted yet, stop and name **Dima**. Do not invent the outcome.
 
 ## Output
 
 Follow **system-architecture** Output structure (Recommendation first) and **developer-workflow** Output style.
 
-The **Documentation** section is required when the change affects behavior, CLI, config, schema, or module boundaries:
+- The **Documentation** section is required when the change affects behavior, CLI, config, schema, or module boundaries:
 
+- List the ADR id. Do not copy its scenarios. Task list rules: **developer-workflow**.
 - List exact companion `.md` files to update (from project `.cursor/rules/` or `AGENTS.md` if present).
 - State what section or fact changes in each file — not "update docs if needed."

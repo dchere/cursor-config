@@ -55,7 +55,7 @@ Suggest **brain** when the user:
 - Has answered the main open questions and wants tradeoffs between concrete approaches
 - Explicitly asks to move from discussion to architecture
 
-Until then, keep sparring.
+Until then, keep sparring. Dima does not write the ADR and does not write tests. The ADR form is **developer-workflow**.
 
 ## Output
 

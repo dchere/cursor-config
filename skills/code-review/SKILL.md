@@ -30,9 +30,9 @@ Match review depth to the PR (auth/CI → security; loops/ORM → perf; behavior
 - **Security**: injection, secrets, auth, unsafe defaults, `pickle` on untrusted data, cleartext `http://` client URLs
 - **Maintainability**: naming, duplication, function size, coupling, SRP violations, composition vs deep inheritance
 - **Performance**: obvious hot-path complexity, N+1 queries — only flag patterns verifiable from the diff (e.g. nested loops + DB calls, `x in list` inside loops on growing collections)
-- **Tests**: meaningful coverage for changed behavior; integration coverage when a boundary (API, DB, queue) changed; mocks that actually intercept
+- **Tests**: meaningful coverage for changed behavior; a new outcome has a test that states it; integration coverage when a boundary (API, DB, queue) changed; mocks that actually intercept. An existing use-case test edited so new behavior passes is **Critical** unless the user chose that new outcome.
 - **Scope**: no unrelated drive-by refactors
-- **Docs**: when the project uses module memory (`.cursor/rules/`, `AGENTS.md`, companion `.md`), verify mapped files match the diff — flag stale or missing updates as **Suggestion**
+- **Docs**: ADR and scenario-test rules are **developer-workflow**. A **Scenario gap** or **Extra behavior** is not a Suggestion to implement. A stale code map is **Suggestion**.
 
 ## Language-specific review
 

@@ -43,7 +43,8 @@ Delivery wrapping: **developer-workflow** Output style. Thinking order stays the
 3. **Context** — problem, constraints, assumptions
 4. **Boundaries** — modules/services, interfaces, data ownership
 5. **Risks** — failure mode → mitigation; migration path if refactoring
-6. **Documentation** — exact companion `.md` files to update when behavior or boundaries change (from project rules if present)
+6. **Tasks** — when an ADR is accepted. Shape: **developer-workflow**.
+7. **Documentation** — ADR id and path. Module notes link to it. **developer-workflow**.
 
 ## Diagrams
 
