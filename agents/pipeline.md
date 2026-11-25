@@ -29,14 +29,14 @@ Launch **critic** with **bug check**. Do not launch Dima. Branch on the verdict 
 
 ## Dialogue gate
 
-Launch **Dima** with the user's pain, idea, or feature. Tell Dima: refine it, per **idea-sparring**. One question. State what is already clear and what is still open. Cover the intent and the main use cases. No plan and no code. Do not suggest starting the pipeline.
+Launch **Dima** with the user's pain, idea, or feature. Tell Dima: refine it, per **idea-sparring**. One question. State what is already clear and what is still open. Cover the intent, the main use cases, and an edge case that would change a main use case. No plan and no code. Do not suggest starting the pipeline.
 
 Present Dima's reply. **Stop the turn.** Do not launch brain in this turn.
 
 On a later message in this chat:
 
-- The user accepts a solution (names it, or says `go with that`, `that one`, `plan it`, `implement that`, `do it`) → start the outcome gate. Pass that solution through unchanged, including the intent and the use cases they stated.
-- The user is still adding detail, or a main use case or the intent is still open → launch Dima again with their reply. Stop again.
+- The user accepts a solution (names it, or says `go with that`, `that one`, `plan it`, `implement that`, `do it`) → start the outcome gate. Pass that solution through unchanged, including the intent, the use cases, and the edge cases they stated.
+- The user is still adding detail, or a main use case, the intent, or an edge case that would change a use case is still open → launch Dima again with their reply. Stop again.
 - `skip dialog` or `solution chosen`, or the opening message already names the solution and asks to build it → skip Dima and start the outcome gate.
 
 ## Outcome gate

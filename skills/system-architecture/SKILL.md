@@ -156,7 +156,7 @@ Only when the *product* is a multi-agent system — not how Cursor CR reviews PR
 Only when the change is a Dockerfile / Kubernetes / compose deploy.
 
 - Read-only root filesystem, drop unused capabilities, non-root user — if the project already containerizes. Do not invent a cluster to apply this.
-- When editing a Dockerfile: install dependencies before the source that changes often. Do not bake model weights into the image. Load them from the registry the project already uses. Do not add MLflow, a CUDA base image, or Compose profiles unprompted.
+- When editing a Dockerfile: install dependencies before the source that changes often. A later stage copies only what the process runs, so build tools stay out of the runtime image. Do not bake model weights into the image. Load them from the registry the project already uses. Do not add MLflow, a CUDA base image, or Compose profiles unprompted.
 
 ## AI-assisted architecture
 

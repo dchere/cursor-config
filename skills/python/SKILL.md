@@ -125,6 +125,8 @@ Apply this section **after profiling or a known hot path** — not by default on
 - Immutable mappings: builtin `frozendict` (not a `dict` subclass; hashable iff values are). Type-check with `Mapping` or `(dict, frozendict)`.
 - Paths: never `os.path.commonprefix()` (character prefix → path traversal). Use `os.path.commonpath()`.
 - Placeholders: builtin `sentinel("MISSING")` instead of a bare `object()` sentinel (PEP 661).
+- Comprehensions may unpack (`[*sub for sub in nested]`, `{**d for d in dicts}`). Do not rewrite a comprehension onto that form on an older runtime.
+- The default encoding is UTF-8 on every OS. Do not add an encoding workaround to force UTF-8.
 
 ## Additional detail
 
