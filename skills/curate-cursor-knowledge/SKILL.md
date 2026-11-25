@@ -36,20 +36,23 @@ Use when the user provides **concentrated input** to preserve across projects.
 | Landlock / OS sandbox | `python/reference.md` | `system-architecture` (containers) |
 | Agent behavior, skill invocation | `agents/dev`, `cr`, `brain`, `critic`, `tester`, `dima` | — |
 
-Create a new skill only when content is a new domain (e.g. `java/`), not a duplicate topic.
+A duplicate of a topic that already has a home is not a new skill.
 
-### 1b. A proposed agent or pipeline step
+### 1b. No home yet
 
-When the source explicitly argues for a new agent or a new step in the pipeline, do not omit it because no file owns that role yet.
+When a skill, an agent, a language, a technology, an architecture decision, or a practice has no section in the files that were read, do not omit it and do not create a file or a section for it on this pass.
 
-Read **developer-workflow** Order, Who may change what, and the agent files. Propose, and do not edit yet:
+Read the routing table, **developer-workflow** Order, Who may change what, and the agent files. Propose, and do not edit yet:
 
-- **Main idea** — the agent or step the source wants
-- **Pros** — what the current flow cannot do
-- **Cons** — which existing role already covers it, and what a second copy would split
-- **Fit** — the step it would sit beside, or that no step covers it
+- **Main idea** — the rule or role the source wants
+- **Store** — the new skill, agent, or section it would live in
+- **Pros** — what the current files cannot say
+- **Cons** — the existing role or section that already covers part of it
+- **Fit** — the file it would sit beside, or that no file covers it
 
-The user decides. On apply, add the step to **developer-workflow** Order and the agent file. On refusal, the curation report lists it as declined, with the reason they gave. "No suitable home" is not a reason to omit it.
+The user decides. On apply, add that file or section. A new language uses the `python/` layout, `SKILL.md` plus an optional `reference.md`, only after that apply. On refusal, the curation report lists it as declined, with the reason they gave. "No suitable home" is not a reason to omit it and not a reason to store it.
+
+Content that already has a row in the routing table still merges under **3**. A conflict with text already in that home is surfaced and not overwritten.
 
 ### 2. Read current files
 
@@ -92,9 +95,9 @@ If skill boundaries or skill names change, update **dev**, **cr**, **brain** "Wh
 ## Curation report
 - **Files changed:** ...
 - **Canonical homes:** concept → file
-- **Proposed** (new agent or pipeline step, awaiting a decision): main idea, pros, cons, fit
+- **Proposed** (no home yet, awaiting a decision): main idea, where it would be stored, pros, cons, fit
 - **Declined:** what the user refused, and the reason they gave
-- **Omitted** (and why): ... A missing home is not an omission reason for a proposed agent or pipeline step.
+- **Omitted** (and why): ... A missing home is not an omission reason, and it is not a reason to create a file.
 - **Duplicates removed:** ...
 - **Agents updated:** yes/no
 - **Line counts:** SKILL.md before → after (if significant)
@@ -110,9 +113,9 @@ cd ~/projects/cursor-config && git diff && git add -A && git commit -m "..."
 
 - Do not duplicate Cursor **User Rules** verbatim.
 - On conflict with existing skill text, surface it in the report — do not silently overwrite.
-- A source that argues for a new agent or a pipeline step is a proposal under **1b**. Do not drop it while looking for an existing file to edit.
+- A skill, agent, language, technology, architecture decision, or practice with no section yet is a proposal under **1b**. Do not drop it, and do not create its file, while looking for an existing place to edit.
 - Do not add review checklist items that cannot be verified from a typical diff alone.
-- For new languages, copy `python/` layout: `SKILL.md` + optional `reference.md`.
+- For a new language the user has accepted, copy the `python/` layout: `SKILL.md` plus an optional `reference.md`.
 
 ## Example invocations
 

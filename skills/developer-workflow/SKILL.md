@@ -98,7 +98,7 @@ Bug-check verdicts, and no other: `ALREADY SPECIFIED`, `CHANGES A SCENARIO`, `NO
 
 ## Before coding
 
-1. Read project docs (README, the nearest `AGENTS.md`, module `.md` files). The nearest file wins for that directory. Do not add `agents.md`, `claude.md`, or a policy yaml.
+1. Read project docs (README, the nearest `AGENTS.md`, module `.md` files). The nearest file wins for that directory. When that file exists, it states the stack, the architecture, and the command that verifies a change. Do not add `agents.md`, `claude.md`, or a policy yaml.
 2. Identify the smallest change that solves the request.
 3. Detect language/stack from repo signals (`pyproject.toml`, `package.json`, etc.).
 4. Apply the matching language skill (e.g. `python`) when present.
@@ -169,7 +169,7 @@ Mixed short HTTP + SSE/WebSockets: process split is **`system-architecture`** Pr
 
 - Bot / signup-spam / prompt-injection layers (e.g. **Arcjet**): only if the project uses them or the user asks.
 - Keep PII detection **in-process** (e.g. WASM sandbox) so sensitive data does not leave the environment.
-- When stored PII must be matched without decrypting it: AES-256-GCM with a new IV per record, plus an HMAC blind index for equality. Do not add a key service or a crypto library the project does not already use.
+- When stored PII must be matched without decrypting it: AES-256-GCM with a new IV per record, plus an HMAC blind index for equality. When both keys come from one master key, derive them apart so the search key cannot open the ciphertext. Do not add a key service, HKDF, or a crypto library the project does not already use.
 - Linux process sandbox (Landlock): **`python/reference.md`** — only if asked or already used.
 
 ## GitHub Actions (gated)

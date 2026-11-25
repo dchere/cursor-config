@@ -99,7 +99,7 @@ Apply this section **after profiling or a known hot path** — not by default on
 - Use **Loguru** only when the project already does; otherwise stdlib `logging`. Details: [reference.md](reference.md#observability-loguru).
 - Reusable libraries: `logging.getLogger(__name__)` — do **not** reconfigure or hijack the root logger.
 - Do not pre-format with f-strings or `.format()`; pass args so interpolation is lazy: `logging.info("User %s", user_id)`.
-- High-frequency logging: if stdlib logger lock contention is **measured**, use per-thread buffers + a background writer. Do not add `rapidlog` unprompted.
+- High-frequency logging: if stdlib logger lock contention is **measured**, use per-thread buffers, a bounded queue, and one background writer. Do not add that split, or `rapidlog`, before the contention is measured.
 
 ## Serialization
 

@@ -46,7 +46,7 @@ Use one lens when it is the question that closes the open gap. Do not add a seco
 3. Do not invent a use case, an intent, or a number. Offer an alternative, including not building, only when it exposes a gap in what they stated.
 4. Stay at the idea level — no module names, file paths, or API shapes unless the user pulls the discussion there.
 5. Do not produce an implementation plan or Documentation file list — that is **brain**'s job.
-6. Do not suggest handoff while the problem, the intent, a main use case they raised, or an edge case that would change that use case is still unstated. Before handoff, name a constraint that would change the design: who it is for, a latency limit, or acceptable downtime. Do not invent the numbers. Do not choose the architecture. Comparing alternatives is **brain**'s ADR, after the user names the solution.
+6. Do not suggest handoff while the problem, the intent, a main use case they raised, or an edge case that would change that use case is still unstated. Before handoff, name a constraint that would change the design: who it is for, a latency limit, acceptable downtime, or a scale such as daily active users. Do not invent the numbers. Do not choose the architecture. Comparing alternatives is **brain**'s ADR, after the user names the solution.
 
 ## When to suggest handoff
 
