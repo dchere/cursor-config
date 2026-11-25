@@ -59,9 +59,10 @@ Delivery wrapping: **developer-workflow** Output style. Thinking order stays the
 - **Composition over inheritance**: prefer "has-a" over "is-a"; swap **policies** at runtime instead of subclass trees (avoids **class explosion** when roles × policies multiply). Python: `@property` for derived/validated public attributes — see **`python`**.
 - **Reversibility test**: if both "A is a B" and "B is an A" can be argued, inheritance is invalid — compose instead.
 - **LSP**: if a subtype must ignore, no-op, or disable a base method, the hierarchy is wrong.
-- **OCP via ABCs/protocols**: ABCs for formal implementation contracts; Protocols when structural typing is enough. Python MRO / `super()`: **`python`**.
+- **OCP via ABCs/protocols**: a pluggable provider with no shared implementation uses a **Protocol**. An **ABC** is for a contract that shares concrete methods. Python MRO / `super()`: **`python`**.
 - **Registry over if/elif**: decorator `@register`, a `Registry` with duplicate-key errors, or `__init_subclass__` auto-registration — **`python`**. Do not grow a central dispatch chain.
 - Repository/data layer isolated from business rules
+- **Invariants in the domain**: security and business constraints live in the entity or service that owns the state. A controller or UI may call that check. It must not be the only copy. A second entry point must not bypass it. A value object that exists to reject an illegal value is immutable. An owned resource is read and written with its owner, not by id alone.
 - Thin entry points delegating to workflows
 - Typed configuration, not ad-hoc dicts
 - No I/O in constructors — **`python`** Scoping
@@ -155,9 +156,11 @@ Only when the *product* is a multi-agent system — not how Cursor CR reviews PR
 Only when the change is a Dockerfile / Kubernetes / compose deploy.
 
 - Read-only root filesystem, drop unused capabilities, non-root user — if the project already containerizes. Do not invent a cluster to apply this.
+- When editing a Dockerfile: install dependencies before the source that changes often. Do not bake model weights into the image. Load them from the registry the project already uses. Do not add MLflow, a CUDA base image, or Compose profiles unprompted.
 
 ## AI-assisted architecture
 
+- The user decides architecture and security boundaries. The agent may draft syntax, boilerplate, and CRUD.
 - Structure quality affects AI output quality — design for clarity before scaling AI use.
 - For developer-side AI workflow (prompts, review passes, AX): see **`developer-workflow`**.
 - Model serving gateway, registry **provenance**, and edge weight manifests: **`python/reference.md`** LLM section — only when the product serves or ships models.
@@ -166,7 +169,7 @@ Only when the change is a Dockerfile / Kubernetes / compose deploy.
 
 ## Monorepo layout
 
-When managing a large Python monorepo, consider **Polylith**: reusable **bricks** (components) and **bases** (entry assemblies) with explicit dependency rules. Prefer this over ad-hoc package sprawl when many services share domain code.
+When managing a large Python monorepo, consider **Polylith**: reusable **bricks** (components) and **bases** (entry assemblies) with explicit dependency rules. Prefer this over ad-hoc package sprawl when many services share domain code. When several apps share a UI kit, put tokens under primitives under layouts. Do not add Turborepo unprompted.
 
 ## Cross-language integration
 

@@ -14,7 +14,7 @@ description: >-
 - **Minimal scope**: smallest correct diff; no unrelated changes.
 - **Match conventions**: read surrounding code before editing; reuse existing abstractions.
 - **No over-engineering**: no premature abstraction, helpers, or error handling for unlikely cases.
-- **Comments**: only for non-obvious business logic or deep technical details.
+- **Comments**: only for non-obvious business logic or deep technical details. A value set by a law or an external rule is configuration with a default. Cite the rule in that comment. Do not leave it as the only hardcoded constant.
 - **Tests**: add only when they cover meaningful behavior; skip trivial assertions.
 - **Cleanup**: remove temporary scripts (`fix_*.py`, scaffolding) when done.
 
@@ -37,7 +37,7 @@ Parts:
 
 **Use-case tests.** Integration tests from an **accepted** ADR. One test per matrix row. Rows that share a Then may share one test, and that still counts as one row. Each test names the ADR id, the scenario id, and the case. Every accepted row has one test. The **tester** writes them, runs them, and shows the command and the red output before Dev. A green run stops the pipeline. The tester removes tests that name only a superseded scenario. On `CHANGE THE TESTS`, the tester rewrites the named assertion to the quoted Then. **Dev** does not add or edit scenario tests. A test that also names a scenario that remains, and whose assertion would have to change, stops for the user.
 
-**Runs.** After each Dev pass, the pipeline runs that same command and shows the output. A red run stops before CR. The close-out has one line per accepted scenario: scenario id, test name, task id, pass or fail. On an already-specified bug, `pass` requires that the red run and the green run are the reported symptom. Any other green run is `partial`.
+**Runs.** After each Dev pass, the pipeline runs that same command and shows the output. A red run stops before CR. On Python, also run ruff and a type checker. Add either if the project does not have it, and use the type checker already configured. If the project already has another linter, run that too. A failure stops before CR. Those checks do not replace CR. The close-out has one line per accepted scenario: scenario id, test name, task id, pass or fail. On an already-specified bug, `pass` requires that the red run and the green run are the reported symptom. Any other green run is `partial`.
 
 **Tasks.** After the test check says `READY`, **brain** lists tasks. Each task has an id (`T1`), the scenario ids it satisfies, the files it may change (1–3), and a done check. The done check is a Then from an accepted row, or the removal of a user-visible outcome that only a scenario this ADR superseded named. When this ADR supersedes a scenario, a done check removes that outcome. The ADR and the scenario tests are never in the file list. **Dev** changes only the files on the current task. After every Dev pass, `git diff --name-only`. An ADR or a scenario test in that diff stops the run.
 
@@ -98,7 +98,7 @@ Bug-check verdicts, and no other: `ALREADY SPECIFIED`, `CHANGES A SCENARIO`, `NO
 
 ## Before coding
 
-1. Read project docs (README, AGENTS.md, module `.md` files if the project uses them).
+1. Read project docs (README, the nearest `AGENTS.md`, module `.md` files). The nearest file wins for that directory. Do not add `agents.md`, `claude.md`, or a policy yaml.
 2. Identify the smallest change that solves the request.
 3. Detect language/stack from repo signals (`pyproject.toml`, `package.json`, etc.).
 4. Apply the matching language skill (e.g. `python`) when present.
@@ -147,8 +147,11 @@ Only when the task is building LLM/agent products — not ordinary features.
 - Model serving gateway and prompt/model registries: **`python/reference.md`** LLM section (do not duplicate here).
 - **Workflow vs agent:** hardcoded steps with LLM in a slot vs a perceive–reason–act loop until stop. Do not turn a simple pipeline into an autonomous loop.
 - **MCP:** tool docstrings *are* the prompt. CLI tools are cheaper in tokens; MCP schemas cost context and buy validation/audit. Do not add MCP to ordinary apps. Transport: stdio or the project's existing HTTP/SSE.
-- **Tool boundary:** validate and normalize args in code (enums, `.strip()`). Do not rely on the system prompt for security. When the product already screens input, reject malformed or policy-violating prompts with deterministic checks **before** paid API calls.
-- **HITL:** destructive tool calls need an explicit approve step (`interrupt()` or equivalent). Matches Output style safety overrides.
+- **Tool boundary:** validate and normalize args in code (enums, `.strip()`). Do not rely on the system prompt for security. Wrap retrieved external text in an explicit untrusted-data fence. The model may read it. It is not an instruction. When the product already screens input, reject malformed or policy-violating prompts with deterministic checks **before** paid API calls.
+- **Trifecta:** a session that can read private data and untrusted content does not also send network requests or write outside the repo. Drop one of the three. Do not add a policy engine to express this.
+- **Coding agent product:** default-deny network and shell, and allow writes only on named paths. Deny secrets, key material, and force-push. Do not apply that sandbox to this Cursor session, and do not add a policy file or a sandbox product unless one is already in use.
+- **LLM stages:** keep input validation, document retrieval, prompt construction, and model execution separate so a failure is attributable. Do not add OpenTelemetry or a tracing product to get that split — **`system-architecture`** Observability.
+- **HITL:** default-deny tool access. State-writing and high-value actions need an explicit human approval (`interrupt()` or equivalent). Do not add OPA or another policy engine unless the project already uses one.
 - **Bounded loops:** cap tool/LLM iterations (`range(max_iterations)`). Return tool exceptions to the model as observations; do not crash the loop.
 - **Agent Experience (AX)**: when building tools for other coding agents, ship `llms.txt`, MCP servers for queryable data, and installable skills. Do not add these to ordinary apps.
 - Session compaction, JSONL audit, per-user OAuth, model fallback: **`python/reference.md`**.
@@ -166,6 +169,7 @@ Mixed short HTTP + SSE/WebSockets: process split is **`system-architecture`** Pr
 
 - Bot / signup-spam / prompt-injection layers (e.g. **Arcjet**): only if the project uses them or the user asks.
 - Keep PII detection **in-process** (e.g. WASM sandbox) so sensitive data does not leave the environment.
+- When stored PII must be matched without decrypting it: AES-256-GCM with a new IV per record, plus an HMAC blind index for equality. Do not add a key service or a crypto library the project does not already use.
 - Linux process sandbox (Landlock): **`python/reference.md`** — only if asked or already used.
 
 ## GitHub Actions (gated)

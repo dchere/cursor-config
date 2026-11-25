@@ -22,7 +22,7 @@ description: >-
 
 ## Style and linting
 
-- Use **Ruff** for lint/format when configured.
+- Use **Ruff** for lint and format.
 - Line length: follow `pyproject.toml` (often 100).
 - Prefer explicit imports; group stdlib, third-party, local.
 - Do not add `# pylint: disable=...` broadly; refactor instead.
@@ -31,8 +31,9 @@ description: >-
 ## Typing and validation
 
 - Add type hints on public functions and non-trivial internals.
+- Every Python project has a type checker and runs it on the change. Use the one already configured. If none is configured, add one. Do not switch an existing checker.
 - Use `Optional`, `list`, `dict` (or `from __future__ import annotations` per project).
-- Use **Pydantic** `BaseModel` for config and for **external input** (API, CSV, user files) at boundaries.
+- Use **Pydantic** `BaseModel` for config and for **external input** (API, CSV, user files, env). It is a required dependency on every Python project. Do not add a second validation library.
 - Keep `Annotated[...]` when that is the project style. Do **not** rewrite to proposed `@` metadata shorthand unless the project's Python/tooling already supports and uses it.
 
 ## Methods
@@ -43,7 +44,7 @@ description: >-
 
 ## Contracts and inheritance
 
-- Use **ABCs** when subclasses must formally implement a contract; prefer **Protocols** when structural typing is enough.
+- Use **Protocols** for a pluggable provider that shares no implementation. Use **ABCs** only when subclasses share concrete methods.
 - Multiple inheritance / diamond problem: inspect `Class.__mro__` to see the search path; use **`super()`** so each ancestor initializes once.
 - Inheritance vs composition (reversibility test, LSP, policy composition): **`system-architecture`**.
 
@@ -79,6 +80,7 @@ CPython marks a name **local for the whole function** if it is assigned anywhere
 - **New projects**: use **`uv`** for env, lockfile, and production-style installs.
 - **Existing repos**: follow `pip`/`requirements.txt` — do not migrate without being asked.
 - **If the project already uses uv**: use `uv lock` / `uv sync` / `uv run` — do not mix pip in that repo.
+- **Ruff** is required on every Python project. Add it if it is missing, and run it on the change. A type checker is required the same way: run the one the project has, or add one if it has none. Do not add a Makefile to get either tool.
 - Heavy ML/runtime deps stay optional when possible. Tooling details: [reference.md](reference.md#environment-tooling).
 
 ## Performance (only when relevant)
@@ -86,7 +88,8 @@ CPython marks a name **local for the whole function** if it is assigned anywhere
 Apply this section **after profiling or a known hot path** — not by default on every change.
 
 - Prefer **O(1)** membership via `set` / `dict` over list scans in hot loops. Prefer set algebra (`&`, `|`) over nested membership `if`s when matching collections.
-- Profile before optimizing: Python **3.15+** → `profiling.sampling` (Tachyon); older → `cProfile` (`profiling.tracing` alias on 3.15+), **Pyinstrument**, or Linux **`perf`**. Modes/outputs: [reference.md](reference.md#profiling).
+- On a large **sorted** sequence in a hot path, use `bisect_left` / `bisect_right`. Do not bisect a short list or an unsorted one.
+- Profile before optimizing: Python **3.15+** → `profiling.sampling` (Tachyon) when overhead matters, including production; pass `--async-aware` for asyncio so the parent task stays on the stack. `profiling.tracing` when development needs exact call counts. Older Python → `cProfile`, **Pyinstrument**, or Linux **`perf`**. Modes/outputs: [reference.md](reference.md#profiling).
 - Do not read `__dict__`, `vars()`, `'x' in obj.__dict__`, or `copy.copy(instance)` on hot-path objects (3.11+ permanently deopts attribute access). Details: [reference.md](reference.md#attribute-access).
 - **`__slots__`**, PyO3, Cython, concurrency rewrites: see [reference.md](reference.md) — require evidence, not speculation.
 

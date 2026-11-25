@@ -40,11 +40,24 @@ For **Python** (`.py`): apply the `python` skill for validation, methods, loggin
 
 Flag from the diff when visible:
 
+- Python project with no ruff configuration (**Suggestion** — add it; **`python`**)
+- Python project with no type checker configured (**Suggestion** — add one; **`python`**)
+- New config or external payload parsed without Pydantic (**Suggestion** — **`python`**)
 - Deep inheritance where composition (or `@property`) would simplify
 - `os.path.commonprefix()` used as a path/URL containment check (**Critical** if it gates authz; otherwise **Suggestion** — use `os.path.commonpath()`)
 - Newly added third-party GitHub Action `uses:` without a 40-character commit SHA (**Critical**); floating tags on workflows the PR already touches (**Suggestion**)
 - `.github/dependabot.yml` added or edited with no update cooldown (**Suggestion** — e.g. 7 days; do not add Dependabot to a repo that lacks it)
+- Hard-coded password, token, or other secret (**Critical**)
+- `password`, `authorization`, `ssn`, or `api_key` written to a log (**Critical**)
+- SQL built with `%`, an f-string, or concatenation (**Critical**)
+- A user-owned resource loaded or changed by id with no owner check (**Critical**)
+- A server-side fetch of a user-supplied URL with no allowlist, or aimed at loopback, link-local, or `169.254.169.254` (**Critical**)
+- Client-supplied price or total used as the amount charged (**Critical**)
+- `await` missing on a coroutine, so the call never runs (**Critical** when the result is dropped)
+- Wildcard CORS (`allow_origins=["*"]`) on an authenticated API, or combined with credentials (**Critical**)
+- A debug or admin endpoint registered with no switch that defaults off (**Critical** when it is on a production path)
 - Unvalidated external input reaching business logic
+- Security or business check enforced only in a controller or UI while another path writes the same state (**Suggestion** — **`system-architecture`** invariants in the domain)
 - `GET` (or other safe-method) handlers that mutate state (**Critical** — CSRF via image/link; mutations belong on POST/PUT/PATCH/DELETE)
 - OAuth authorization-code flow missing PKCE (`code_challenge`) or CSRF `state`, or long-lived refresh tokens stored in the browser / localStorage (**Critical** — only if the PR implements OAuth)
 - Session-cookie auth without a CSRF token or `SameSite=Lax`/`Strict` (**Suggestion** — only if the PR implements cookie sessions)
@@ -69,12 +82,14 @@ Flag from the diff when visible:
 - `@staticmethod` that uses neither `self` nor `cls` — prefer a module-level function unless class namespace is intentional (**Suggestion**)
 - `@classmethod` used for ordinary instance behavior (**Suggestion**)
 - Boundary (API/DB/queue) change with only unit tests and no integration coverage (**Suggestion**)
+- A copied block in this diff that will diverge from its original (**Suggestion**). Do not start a repo-wide dedup.
 - Multi-step distributed write without a compensating/rollback path, or compensations that are not idempotent / not reverse-order (**Suggestion** — only if the PR is implementing that flow)
 - Hardcoded production prompts scattered in call sites on an LLM-serving change (**Suggestion** — prefer config/registry; see `python/reference.md`)
 - New coding-agent / developer-tool surface with no `llms.txt` or MCP affordance (**Nice to have** — AX only)
 - Mutable DB/HTTP/cache clients at module global on a request path (**Suggestion**)
 - Agent tool that logs or prompts raw OAuth/API tokens, or a shared bot token for per-user actions (**Critical** — only if the PR implements agent tools)
 - Agent tool whose only security is a system-prompt instruction (no code validation at the boundary) (**Suggestion** — agent-product PRs)
+- Retrieved page or document text concatenated into the system prompt with no untrusted-data fence (**Suggestion** — agent-product PRs)
 - New C extension on a free-threaded runtime without `Py_MOD_GIL_NOT_USED` (**Suggestion** — GIL re-enabled process-wide)
 
 Do **not** require:

@@ -46,6 +46,7 @@ Apply one or two per turn — name the lens when switching:
 3. Offer alternatives the user did not ask for, including "don't build."
 4. Stay at the idea level — no module names, file paths, or API shapes unless the user pulls the discussion there.
 5. Do not produce an implementation plan or Documentation file list — that is **brain**'s job.
+6. Before handoff, name a constraint that would change the design: who it is for, a latency limit, or acceptable downtime. Do not invent the numbers. Do not choose the architecture.
 
 ## When to suggest handoff
 

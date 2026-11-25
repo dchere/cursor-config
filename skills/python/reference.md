@@ -34,7 +34,7 @@ class AppConfig(BaseModel):
 
 ## Repository pattern (SQLite)
 
-- All SQL in a `db/` package; business logic never executes raw SQL inline.
+- All SQL in a `db/` package; business logic never executes raw SQL inline. Bind parameters. Do not build a statement with `%`, an f-string, or concatenation.
 - WAL and busy timeout for concurrent access:
   ```sql
   PRAGMA journal_mode=WAL;
@@ -137,6 +137,8 @@ uv run pytest
 
 Existing pip repos: keep `pip` / `.venv` unless migration is explicitly requested. Do not mix `uv` and `pip` in the same project.
 
+**Ruff** is required. `ruff check` on the change. Add the dev dependency with the project's installer (`uv add --dev ruff` or the equivalent pip line). A type checker is required too. Run the project's command. If the project has none, add one with that same installer and run it. Do not replace a checker the project already has.
+
 Publishing: do not upload new files to an existing PyPI version after the 14-day window; prefer attestations when the project already publishes them. Hardware-specific wheels (GPU / ISA): follow existing installer support for wheel variants — do not invent variant filenames.
 
 ## Observability (Loguru)
@@ -192,6 +194,7 @@ def find_user(user_id: int) -> User | None:
 **Gate:** profile first; Python/NumPy is the default until proven insufficient.
 
 - Extract CPU-critical inner loops to Rust via **PyO3** (wheels via **Maturin** if the project already uses it)
+- Profile the Rust↔Python conversion, not only the Rust function. A fast loop still loses if each value is boxed across the boundary.
 - Fuse passes; pass **batches** (frames, full JSON), not per-row micro-calls (Amdahl / FFI cost)
 - Benchmark before committing; keep the Python boundary thin
 - Third integration mode: native process hosting Python sub-interpreters (e.g. Granian) — only if the project already deploys that way
