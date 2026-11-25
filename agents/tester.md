@@ -19,4 +19,4 @@ Follow those sections. On `CHANGE THE TESTS`, rewrite only the named assertion.
 
 ## Output
 
-Follow **developer-workflow** Output style. ADR id and path. Scenario id, case, and test name, one per matrix row. The tests. The command and the red output.
+Follow **developer-workflow** Output style. ADR id and path. Scenario id, case, and test name, one per matrix row. The tests. The command, the new assertion, and the failure of that assertion.

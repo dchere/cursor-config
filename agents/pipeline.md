@@ -160,7 +160,7 @@ Lead with which applies and why in one or two sentences:
 | **Ready to commit** | Final review: no Critical findings; remaining Suggestions are optional; an already-specified bug is not `partial` |
 | **Iterate** | Final review still has Critical findings — list them (pipeline exhausted its fix rounds) |
 | **Blocked** | A phase failed or could not review the diff |
-| **Needs you** | Dialogue has no accepted solution, the ADR is not approved, a bug is `CHANGES A SCENARIO` or `NOT SPECIFIED`, a scenario and an existing use-case test cannot both stand, the scenario tests were green before Dev or still red after Dev, an already-specified bug is `partial`, a second test check is still `CHANGE THE TESTS`, a second plan check is still `CHANGE THE PLAN`, the diff touched an ADR or a scenario test, a shortcut would change user-visible behavior, or CR reported a **Scenario gap** or **Extra behavior** |
+| **Needs you** | Dialogue has no accepted solution, the ADR is not approved, a bug is `CHANGES A SCENARIO` or `NOT SPECIFIED`, a scenario and an existing use-case test cannot both stand, the scenario tests were green before Dev, the red run is not the new assertion failing, or they are still red after Dev, an already-specified bug is `partial`, a second test check is still `CHANGE THE TESTS`, a second plan check is still `CHANGE THE PLAN`, the diff touched an ADR or a scenario test, a shortcut would change user-visible behavior, or CR reported a **Scenario gap** or **Extra behavior** |
 
 ### Pipeline close-out
 

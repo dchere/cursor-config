@@ -35,7 +35,7 @@ Parts:
 
 **Supersede.** A behavior change that contradicts an accepted scenario is a new ADR. It lists only the scenarios that change: `Supersedes: ADR-4 S3`. On `yes`, mark that scenario `superseded by ADR-9 S3`. Leave its text. Leave the other scenarios accepted. When every scenario in the old ADR is superseded, or the new ADR names the whole record (`Supersedes: ADR-N`), set the old record to `superseded by ADR-M`. Do not edit the old problem, decision, or scenario text.
 
-**Use-case tests.** Integration tests from an **accepted** ADR. One test per matrix row. Rows that share a Then may share one test, and that still counts as one row. Each test names the ADR id, the scenario id, and the case. Every accepted row has one test. The **tester** writes them, runs them, and shows the command and the red output before Dev. A green run stops the pipeline. The tester removes tests that name only a superseded scenario. On `CHANGE THE TESTS`, the tester rewrites the named assertion to the quoted Then. **Dev** does not add or edit scenario tests. A test that also names a scenario that remains, and whose assertion would have to change, stops for the user.
+**Use-case tests.** Integration tests from an **accepted** ADR. One test per matrix row. Rows that share a Then may share one test, and that still counts as one row. Each test names the ADR id, the scenario id, and the case. Every accepted row has one test. The **tester** writes them, runs them, and shows the command and the red output before Dev. A green run stops the pipeline. The red that starts Dev is the new assertion failing. The tester shows that assertion and that failure. An import error, a collection error, or an old test failing stops the pipeline. The tester removes tests that name only a superseded scenario. On `CHANGE THE TESTS`, the tester rewrites the named assertion to the quoted Then. **Dev** does not add or edit scenario tests. A test that also names a scenario that remains, and whose assertion would have to change, stops for the user.
 
 **Runs.** After each Dev pass, the pipeline runs that same command and shows the output. A red run stops before CR. On Python, also run ruff and a type checker. Add either if the project does not have it, and use the type checker already configured. If the project already has another linter, run that too. A failure stops before CR. Those checks do not replace CR. The close-out has one line per accepted scenario: scenario id, test name, task id, pass or fail. On an already-specified bug, `pass` requires that the red run and the green run are the reported symptom. Any other green run is `partial`.
 
@@ -70,7 +70,7 @@ Parts:
 - A plan choice that Consequences, an accepted scenario, or a written principle rules out.
 - This ADR supersedes a scenario, and no done check removes the outcome only that scenario named.
 
-**Test check.** After the red run. Verdicts: `READY`, `CHANGE THE TESTS`. Compare each assertion the tester added with its Then. A weaker or different assertion is `CHANGE THE TESTS`. Name the test and quote the Then. Do not propose an implementation.
+**Test check.** After the red run. Verdicts: `READY`, `CHANGE THE TESTS`. Compare each assertion the tester added with its Then. A weaker or different assertion is `CHANGE THE TESTS`. So is an assertion that would still pass if its Then were false. Name the test and quote the Then. Do not propose an implementation.
 
 **Retries.** `CHANGE THE TESTS` and `CHANGE THE PLAN` return to the writer once. The second one stops for the user. Show what the critic named.
 
