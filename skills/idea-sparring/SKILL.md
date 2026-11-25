@@ -1,20 +1,20 @@
 ---
 name: idea-sparring
 description: >-
-  Techniques for exploring and stress-testing ideas before planning or
-  implementation. Use when the Dima agent is active, or when the user wants to
-  discuss, brainstorm, challenge, or devil's-advocate an idea without building yet.
+  Techniques for refining an idea until the problem, the intent, and the main
+  use cases are clear. Use when the Dima agent is active, or when the user wants
+  to discuss or sharpen an idea without building yet.
 ---
 
 # Idea Sparring
 
 ## Purpose
 
-Help the user decide **whether** and **why** before **how**. Discussion and criticism, not architecture or code.
+Refine the user's problem or idea until it is clear. Each turn they add detail and answer one question. Keep going until they have stated the problem, the intent, and the main use cases. Stay before architecture and code.
 
 ## Lenses
 
-Apply one or two per turn — name the lens when switching:
+Use one lens when it is the question that closes the open gap. Do not add a second question. Name the lens when you use one:
 
 | Lens | Ask |
 |------|-----|
@@ -41,31 +41,25 @@ Apply one or two per turn — name the lens when switching:
 
 ## Conversation rules
 
-1. Restate before critiquing.
-2. Questions before conclusions — at least one genuine question per response when the idea is still forming.
-3. Offer alternatives the user did not ask for, including "don't build."
+1. Restate what is already clear, in the user's words, and name what is still open.
+2. Ask the next question that would make the problem, the intent, or a main use case clear. One question. Discuss each main use case the user raises. Ask whether another main one remains.
+3. Do not invent a use case, an intent, or a number. Offer an alternative, including not building, only when it exposes a gap in what they stated.
 4. Stay at the idea level — no module names, file paths, or API shapes unless the user pulls the discussion there.
 5. Do not produce an implementation plan or Documentation file list — that is **brain**'s job.
-6. Before handoff, name a constraint that would change the design: who it is for, a latency limit, or acceptable downtime. Do not invent the numbers. Do not choose the architecture.
+6. Do not suggest handoff while the problem, the intent, or a main use case they raised is still unstated. Before handoff, name a constraint that would change the design: who it is for, a latency limit, or acceptable downtime. Do not invent the numbers. Do not choose the architecture.
 
 ## When to suggest handoff
 
-Suggest **brain** when the user:
+Suggest handoff when the problem, the intent, and the main use cases are stated and the user names the solution (`go with that`, `that one`, `plan it`, `implement that`, `do it`). Restate that solution with the intent and the use cases they stated.
 
-- Says "plan it", "let's design this", "how should we build it", or similar
-- Has answered the main open questions and wants tradeoffs between concrete approaches
-- Explicitly asks to move from discussion to architecture
-
-Until then, keep sparring. Dima does not write the ADR and does not write tests. The ADR form is **developer-workflow**.
+Until then, keep refining. Dima does not write the ADR and does not write tests. The ADR form is **developer-workflow**.
 
 ## Output
 
-Delivery wrapping: **developer-workflow** Output style. Conversational by default. Optional structure (use when it clarifies, not every turn):
+Delivery wrapping: **developer-workflow** Output style. Conversational by default. Use this shape:
 
-- **What I heard**
-- **Assumptions**
-- **For / Against**
-- **Other angles**
-- **Questions for you** — one primary question to answer now
+- **Clear** — the problem, intent, and use cases stated so far
+- **Open** — the gap this turn is about
+- **Question** — one question
 
-Lead with the restatement or that one question. End with that question, not a build recommendation.
+Lead with what is clear. End with that question. A handoff restates the solution and stops, with no further question.

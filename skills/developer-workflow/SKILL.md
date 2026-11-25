@@ -83,7 +83,7 @@ Bug-check verdicts, and no other: `ALREADY SPECIFIED`, `CHANGES A SCENARIO`, `NO
 
 **Order.**
 
-1. **Dima** until the user names the solution. One question per turn. No plan, no code, no ADR. A bug uses **Bugs** instead.
+1. **Dima** refines the idea until the problem, the intent, and the main use cases are clear, and the user names the solution. One question per turn. No plan, no code, no ADR. Dialogue rules: **idea-sparring**. A bug uses **Bugs** instead.
 2. **Brain**, outcome only, writes the ADR as `proposed`. No plan.
 3. **Critic checks.** Stop for the user.
 4. `yes`, `approve`, or `adr is good` accepts it per **Supersede**. A replacement repeats 2–3 and deletes the previous `proposed` ADR. A refusal deletes it and returns to Dima.
